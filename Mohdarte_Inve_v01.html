@@ -1,0 +1,3006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mohdarte Inve</title>
+    <style>
+        :root {
+            --bg-color: #2c2c2c;
+            --panel-bg-color: #3a3a3a;
+            --primary-accent-color: #00aaff;
+            --text-color: #f0f0f0;
+            --border-color: #555555;
+            --input-bg-color: #252525;
+            --header-height: 45px;
+        }
+
+        html, body {
+            overscroll-behavior: none;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--panel-bg-color);
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            height: var(--header-height);
+            box-sizing: border-box;
+        }
+        
+        header h1 {
+            font-size: 1.2em;
+            margin: 0;
+        }
+
+        #panels-toggle-btn {
+            display: none;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .main-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            width: 60px;
+            background-color: var(--panel-bg-color);
+            border-right: 1px solid var(--border-color);
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+            order: 1;
+            overflow-y: auto;
+        }
+
+        .tool-button {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s, border-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .tool-button.active {
+            border-color: var(--primary-accent-color);
+            background-color: #4a4a4a;
+        }
+
+        .tool-button:hover {
+            background-color: #4f4f4f;
+        }
+
+        .tool-button.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .tool-button svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-color);
+            stroke: var(--text-color);
+            stroke-width: 0.5;
+        }
+
+        .canvas-area {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #222;
+            overflow: hidden;
+            padding: 0;
+            position: relative;
+            order: 2;
+        }
+
+        .canvas-container {
+            position: absolute;
+            width: 800px;
+            height: 600px;
+            transform-origin: 0 0;
+        }
+        
+        #dynamic-brush-canvas-container .canvas-wrapper,
+        #main-canvas-container .canvas-wrapper {
+            width: 100%;
+            height: 100%;
+        }
+
+        #dynamic-brush-canvas-container {
+            visibility: hidden;
+            width: 256px;
+            height: 256px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        #main-canvas-container .canvas-wrapper {
+             background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        #paint-canvas, #dynamic-brush-canvas, #selection-overlay-canvas {
+            background-color: transparent;
+            width: 100%;
+            height: 100%;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #selection-overlay-canvas {
+            pointer-events: none;
+        }
+        
+        /* NEW CSS for the touch UI */
+        .selection-brush-modes {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background-color: rgba(40, 40, 40, 0.8);
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+            gap: 4px;
+            border: 1px solid var(--border-color);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+        .selection-brush-modes button {
+            background-color: transparent;
+            border: 2px solid transparent;
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .selection-brush-modes button.active {
+            border-color: var(--primary-accent-color);
+            background-color: rgba(0, 170, 255, 0.2);
+        }
+        /* END NEW CSS */
+
+        #dynamic-brush-canvas {
+             background-image:
+                linear-gradient(45deg, #444 25%, transparent 25%),
+                linear-gradient(-45deg, #444 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #444 75%),
+                linear-gradient(-45deg, transparent 75%, #444 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: #333;
+        }
+
+        #paint-canvas.move-cursor, #dynamic-brush-canvas.move-cursor {
+            cursor: move;
+        }
+        
+        .right-sidebar {
+            width: 280px;
+            background-color: var(--panel-bg-color);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            order: 3;
+        }
+
+        .panel {
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .control-group, .history-buttons {
+            margin-bottom: 15px;
+        }
+        
+        .history-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .file-buttons button, .panel button {
+            background: #4f4f4f;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+            text-align: left;
+        }
+        
+        .file-buttons button:hover, .panel button:hover {
+            background-color: #5a5a5a;
+        }
+        
+        .file-buttons button:disabled, .panel button:disabled {
+            background-color: #333;
+            color: #777;
+            cursor: not-allowed;
+        }
+        
+        .file-buttons .sub-group {
+            padding: 5px 0 10px 0;
+            display: flex;
+            gap: 5px;
+        }
+
+        #layers-container, #custom-brushes-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--input-bg-color);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #custom-brushes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 8px;
+            padding: 8px;
+            min-height: 50px;
+        }
+
+        #dynamic-brush-preview {
+            width: 100%;
+            height: 100px;
+            background-color: #555;
+            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .custom-brush-thumbnail {
+            width: 50px;
+            height: 50px;
+            background-color: #555;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            object-fit: contain;
+            transition: border-color 0.2s;
+        }
+
+        .custom-brush-thumbnail.active {
+            border-color: var(--primary-accent-color);
+        }
+        
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .layer-item:last-child {
+            border-bottom: none;
+        }
+
+        .layer-item.active {
+            background-color: var(--primary-accent-color);
+            color: var(--bg-color);
+        }
+        
+        .layer-item.selection-layer {
+            background-color: #552a2a;
+        }
+        
+        .layer-item.selection-layer.active {
+            background-color: #ff5555;
+        }
+
+
+        .layer-item span {
+            flex-grow: 1;
+        }
+
+        .layer-item.dragging {
+            opacity: 0.4;
+        }
+        .layer-item.drag-over {
+            border-top: 2px solid var(--primary-accent-color);
+        }
+
+        .layer-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .layer-buttons button {
+            flex-grow: 1;
+        }
+        
+        @media (max-width: 768px) {
+             .main-container {
+                flex-direction: row; 
+                height: calc(100% - var(--header-height));
+            }
+            .toolbar {
+                order: 1;
+                width: 60px;
+                height: 100%; 
+                flex-direction: column;
+                justify-content: flex-start;
+                overflow-y: auto;
+                border-right: 1px solid var(--border-color);
+                border-top: none;
+                padding: 10px 0;
+            }
+             .toolbar::-webkit-scrollbar {
+                width: 4px;
+            }
+            .toolbar::-webkit-scrollbar-thumb {
+                background: #555;
+                border-radius: 2px;
+            }
+            .tool-button {
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+            .right-sidebar {
+                position: fixed;
+                top: var(--header-height);
+                right: -100%;
+                width: 280px;
+                bottom: 0;
+                z-index: 1000;
+                transition: right 0.3s ease-in-out;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+                border-left: 1px solid var(--border-color);
+                box-sizing: border-box;
+            }
+            .right-sidebar.open {
+                right: 0;
+            }
+            #panels-toggle-btn {
+                display: block;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="app-title">Mohdarte Inve</h1>
+        <button id="panels-toggle-btn">Panels</button>
+    </header>
+
+    <div class="main-container">
+        <div class="toolbar" id="toolbar-container"></div>
+        <div class="canvas-area" id="canvas-area">
+            
+            <div id="main-canvas-container" class="canvas-container">
+                 <div class="canvas-wrapper">
+                    <canvas id="paint-canvas"></canvas>
+                </div>
+            </div>
+
+            <div id="dynamic-brush-canvas-container" class="canvas-container">
+                 <div class="canvas-wrapper">
+                    <canvas id="dynamic-brush-canvas"></canvas>
+                </div>
+            </div>
+
+        </div>
+        <div class="right-sidebar" id="sidebar-container"></div>
+    </div>
+
+    <script>
+        /**
+         * ==================================================================================
+         * CANVAS CORE (The Hub)
+         * ==================================================================================
+         */
+        const CanvasCore = {
+            mainCanvas: null,
+            mainCtx: null,
+            mainCanvasWrapper: null,
+            OmniBrushCanvas: null,
+            OmniBrushCtx: null,
+            OmniBrushCanvasWrapper: null,
+            selectionMaskCanvas: null,
+            selectionMaskCtx: null,
+            selectionOverlayCanvas: null,
+            selectionOverlayCtx: null,
+            selectionLayer: { main: null, OmniBrush: null },
+            modules: new Map(),
+            activeToolId: null,
+            activeCanvasContext: 'main',
+            layerStacks: { main: [], OmniBrush: [] },
+            activeLayerIndices: { main: -1, OmniBrush: -1 },
+            historyStacks: {
+                main: { undoStack: [], redoStack: [], maxSize: 50 },
+                OmniBrush: { undoStack: [], redoStack: [], maxSize: 50 }
+            },
+            viewTransforms: {
+                main: { scale: 1, offsetX: 0, offsetY: 0 },
+                OmniBrush: { scale: 1, offsetX: 0, offsetY: 0 }
+            },
+            isPainting: false,
+            lastPos: { x: 0, y: 0 },
+            globalState: {
+                color: '#ff0000',
+                brushSize: 50,
+                opacity: 1.0,
+                ppi: 300, 
+                selectionRect: null,
+                hasSelection: false,
+                clipboardData: null,
+                movingData: null,
+                activeBrush: null,
+                OmniBrushColorMode: 'original',
+                selectionSourceLayerIndex: -1,
+            },
+
+            init() {
+                this.mainCanvas = document.getElementById('paint-canvas');
+                this.mainCtx = this.mainCanvas.getContext('2d', { willReadFrequently: true });
+                this.mainCanvasWrapper = document.querySelector('#main-canvas-container .canvas-wrapper');
+                this.OmniBrushCanvasWrapper = document.querySelector('#dynamic-brush-canvas-container .canvas-wrapper');
+                
+                this.mainCanvas.width = 800;
+                this.mainCanvas.height = 600;
+                this.OmniBrushCanvas = document.getElementById('dynamic-brush-canvas');
+                this.OmniBrushCanvas.width = 256;
+                this.OmniBrushCanvas.height = 256;
+
+                this.selectionOverlayCanvas = document.createElement('canvas');
+                this.selectionOverlayCanvas.id = 'selection-overlay-canvas';
+                this.mainCanvasWrapper.appendChild(this.selectionOverlayCanvas);
+                this.selectionOverlayCtx = this.selectionOverlayCanvas.getContext('2d');
+                
+                this.selectionMaskCanvas = document.createElement('canvas');
+                this.selectionMaskCtx = this.selectionMaskCanvas.getContext('2d', { willReadFrequently: true });
+
+                this.resizeSelectionCanvases('main');
+
+                document.getElementById('main-canvas-container').style.transformOrigin = '0 0';
+                document.getElementById('dynamic-brush-canvas-container').style.transformOrigin = '0 0';
+                
+                this.addLayer("Background", { skipHistory: true, context: 'main' });
+                this.addLayer("Layer 1", { skipHistory: true, context: 'main' });
+                this.selectionLayer.main = this.addLayer("Selection Layer", { skipHistory: true, context: 'main' });
+                this.setActiveLayer(1, 'main');
+
+                this.OmniBrushCtx = this.OmniBrushCanvas.getContext('2d', { willReadFrequently: true });
+                this.addLayer("Brush Layer 1", { skipHistory: true, context: 'OmniBrush' });
+                this.selectionLayer.OmniBrush = this.addLayer("Selection Layer", { skipHistory: true, context: 'OmniBrush' });
+                this.setActiveLayer(0, 'OmniBrush');
+
+
+                this.saveStateForUndo('main');
+                this.saveStateForUndo('OmniBrush');
+
+                const canvasArea = document.getElementById('canvas-area');
+                canvasArea.addEventListener('mousedown', this.handleInput.bind(this));
+                canvasArea.addEventListener('mousemove', this.handleInput.bind(this));
+                window.addEventListener('mouseup', this.handleInput.bind(this)); 
+                canvasArea.addEventListener('wheel', this.handleInput.bind(this), { passive: false });
+                
+                canvasArea.addEventListener('touchstart', this.handleInput.bind(this), { passive: false });
+                canvasArea.addEventListener('touchmove', this.handleInput.bind(this), { passive: false });
+                window.addEventListener('touchend', this.handleInput.bind(this));
+            },
+            
+            toggleActiveCanvas() {
+                this.clearSelection();
+                this.activeCanvasContext = this.activeCanvasContext === 'main' ? 'OmniBrush' : 'main';
+                document.getElementById('main-canvas-container').style.visibility = this.activeCanvasContext === 'main' ? 'visible' : 'hidden';
+                document.getElementById('dynamic-brush-canvas-container').style.visibility = this.activeCanvasContext === 'OmniBrush' ? 'visible' : 'hidden';
+                
+                const selectionToolBtn = document.querySelector('[data-tool-id="modart.tool.selection"]');
+                const selectionBrushToolBtn = document.querySelector('[data-tool-id="modart.tool.selectionbrush"]');
+
+                if (this.activeCanvasContext === 'OmniBrush') {
+                    // Disable selection tools
+                    if (selectionToolBtn) selectionToolBtn.classList.add('disabled');
+                    if (selectionBrushToolBtn) selectionBrushToolBtn.classList.add('disabled');
+
+                    // If a selection tool is active, switch to the regular brush
+                    if (this.activeToolId === 'modart.tool.selection' || this.activeToolId === 'modart.tool.selectionbrush') {
+                        this.setActiveTool('modart.tool.brush');
+                    }
+                } else {
+                    // Re-enable selection tools
+                    if (selectionToolBtn) selectionToolBtn.classList.remove('disabled');
+                    if (selectionBrushToolBtn) selectionBrushToolBtn.classList.remove('disabled');
+                }
+                
+                if (this.activeCanvasContext === 'main') {
+                    this.mainCanvasWrapper.appendChild(this.selectionOverlayCanvas);
+                } else {
+                    this.OmniBrushCanvasWrapper.appendChild(this.selectionOverlayCanvas);
+                }
+                this.resizeSelectionCanvases(this.activeCanvasContext);
+
+                document.getElementById('app-title').textContent = this.activeCanvasContext === 'main' ? 'Mohdarte Inve' : 'Mohdarte Inve (Omni Brush Mode)';
+                this.notifyModules('onCanvasContextChange', this.activeCanvasContext);
+                this.applyViewTransform();
+                this.requestFullRedraw();
+            },
+
+            getCanvasContainer() { return this.activeCanvasContext === 'main' ? document.getElementById('main-canvas-container') : document.getElementById('dynamic-brush-canvas-container'); },
+            getCanvas() { return this.activeCanvasContext === 'main' ? this.mainCanvas : this.OmniBrushCanvas; },
+            getLayers(context = this.activeCanvasContext) { return this.layerStacks[context]; },
+            getActiveLayerIndex(context = this.activeCanvasContext) { return this.activeLayerIndices[context]; },
+            getActiveLayer(context = this.activeCanvasContext) { return this.getLayers(context)[this.getActiveLayerIndex(context)]; },
+            getHistory(context = this.activeCanvasContext) { return this.historyStacks[context]; },
+            getViewTransform(context = this.activeCanvasContext) { return this.viewTransforms[context]; },
+            getSelectionLayer(context = this.activeCanvasContext) { return this.selectionLayer[context]; },
+            
+            setViewTransform(transform, context = this.activeCanvasContext) {
+                this.viewTransforms[context] = transform;
+                this.applyViewTransform();
+            },
+
+            applyViewTransform() {
+                const transform = this.getViewTransform();
+                const container = this.getCanvasContainer();
+                container.style.transform = `translate(${transform.offsetX}px, ${transform.offsetY}px) scale(${transform.scale})`;
+            },
+
+            registerModule(module) {
+                this.modules.set(module.id, module);
+                module.init(this);
+            },
+            
+            notifyModules(method, ...args) {
+                this.modules.forEach(module => {
+                    if (module[method]) module[method](...args);
+                });
+            },
+
+            setState(key, value) {
+                if (this.globalState.hasOwnProperty(key)) {
+                    this.globalState[key] = value;
+                    if (key === 'hasSelection') {
+                        this.notifyModules('onSelectionChange', value);
+                    }
+                    if (key === 'activeBrush') {
+                        this.notifyModules('onActiveBrushChange', value);
+                    }
+                }
+            },
+
+            getState(key) { return this.globalState[key]; },
+
+            setActiveTool(toolId) {
+                if (this.modules.has(toolId)) {
+                    this.activeToolId = toolId;
+                    const canvasArea = document.getElementById('canvas-area');
+                    canvasArea.style.cursor = toolId === 'modart.tool.hand' ? 'grab' : 'crosshair';
+                    canvasArea.classList.remove('move-cursor');
+                    document.querySelectorAll('.tool-button').forEach(btn => btn.classList.toggle('active', btn.dataset.toolId === toolId));
+                    this.notifyModules('onActiveToolChange', toolId);
+                }
+            },
+
+            addLayer(name = `Layer ${this.getLayers().length + 1}`, options = {}) {
+                const context = options.context || this.activeCanvasContext;
+                const targetCanvas = context === 'main' ? this.mainCanvas : this.OmniBrushCanvas;
+                
+                const layerCanvas = document.createElement('canvas');
+                layerCanvas.width = targetCanvas.width;
+                layerCanvas.height = targetCanvas.height;
+                const layerCtx = layerCanvas.getContext('2d', { willReadFrequently: true });
+
+                const newLayer = { id: Date.now(), name, canvas: layerCanvas, ctx: layerCtx, visible: true, opacity: 1.0 };
+                this.layerStacks[context].push(newLayer);
+
+                if (!options.skipHistory) this.saveStateForUndo(context);
+                this.requestFullRedraw();
+                return newLayer;
+            },
+            
+            removeLayer(index, context = this.activeCanvasContext) {
+                const layers = this.getLayers(context);
+                const selectionLayer = this.getSelectionLayer(context);
+                if (layers[index].id === selectionLayer.id) return; 
+                if (layers.length <= 2) return; 
+
+                if (index >= 0 && index < layers.length) {
+                    layers.splice(index, 1);
+                    if (this.getActiveLayerIndex(context) >= index) {
+                       this.activeLayerIndices[context] = Math.max(0, this.getActiveLayerIndex(context) - 1);
+                    }
+                    this.saveStateForUndo(context);
+                    this.setActiveLayer(this.getActiveLayerIndex(context), context);
+                }
+            },
+
+            reorderLayer(startIndex, endIndex, context = this.activeCanvasContext) {
+                const layers = this.getLayers(context);
+                if (startIndex < 0 || startIndex >= layers.length || endIndex < 0 || endIndex > layers.length) {
+                    return;
+                }
+
+                const activeLayer = this.getActiveLayer(context);
+                
+                const [movedLayer] = layers.splice(startIndex, 1);
+                layers.splice(endIndex, 0, movedLayer);
+
+                const newActiveIndex = layers.findIndex(layer => layer.id === activeLayer.id);
+                this.activeLayerIndices[context] = newActiveIndex;
+                
+                this.saveStateForUndo(context);
+                this.requestFullRedraw();
+            },
+
+            setActiveLayer(index, context = this.activeCanvasContext) {
+                if (index >= 0 && index < this.getLayers(context).length) {
+                    this.activeLayerIndices[context] = index;
+                    this.requestFullRedraw();
+                }
+            },
+            
+            requestFullRedraw() {
+                const canvas = this.getCanvas();
+                const ctx = canvas.getContext('2d');
+                const layers = this.getLayers();
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                layers.forEach(layer => {
+                    if (layer.visible) {
+                        ctx.globalAlpha = layer.opacity;
+                        ctx.drawImage(layer.canvas, 0, 0);
+                    }
+                });
+                
+                const movingData = this.getState('movingData');
+                if (movingData) {
+                    ctx.drawImage(movingData.drawable, movingData.x, movingData.y);
+                }
+
+                ctx.globalAlpha = 1.0;
+                this.notifyModules('onCanvasRedraw', layers, this.getActiveLayerIndex());
+                this.notifyModules('onOmniBrushUpdate', this.OmniBrushCanvas);
+            },
+            
+            handleInput(e) {
+                const viewModule = this.modules.get('modart.view');
+                if (!viewModule) return;
+
+                if (e.type === 'wheel') { viewModule.handleZoom(e); return; }
+                if (e.type === 'mousedown' && e.button === 1) { viewModule.handlePanStart(e); return; }
+                if (e.type === 'mousemove' && viewModule.isPanning) { viewModule.handlePanMove(e); return; }
+                if (e.type === 'mouseup' && viewModule.isPanning) { viewModule.handlePanEnd(e); return; }
+                
+                if (e.touches) {
+                    if (e.touches.length >= 2) {
+                         if (e.type === 'touchstart') viewModule.handlePinchPanStart(e);
+                         else if (e.type === 'touchmove') viewModule.handlePinchPanMove(e);
+                         return;
+                    }
+                     if (e.type === 'touchend') { viewModule.handlePinchPanEnd(e); }
+                }
+                
+                const activeTool = this.modules.get(this.activeToolId);
+                if (activeTool && activeTool.handleEvent && (e.target.closest('.canvas-wrapper') || e.touches)) {
+                    
+                    let eventForCoords = e;
+                    if(e.touches && e.touches.length > 0) eventForCoords = e.touches[0];
+                    if(e.changedTouches && e.changedTouches.length > 0) eventForCoords = e.changedTouches[0];
+
+                    const canvasContainer = this.getCanvasContainer();
+                    const rect = canvasContainer.getBoundingClientRect();
+                    const transform = this.getViewTransform();
+                    
+                    const mouseX = eventForCoords.clientX - rect.left;
+                    const mouseY = eventForCoords.clientY - rect.top;
+
+                    const canvasX = mouseX / transform.scale;
+                    const canvasY = mouseY / transform.scale;
+                    
+                    const coords = { x: canvasX, y: canvasY };
+                    
+                    let targetCtx = this.getActiveLayer().ctx;
+
+                    if ( (e.type === 'mouseup' || e.type === 'touchend') && this.isPainting) {
+                         activeTool.handleEvent(e, rect, targetCtx, this.lastPos);
+                         return;
+                    }
+                    
+                    activeTool.handleEvent(e, rect, targetCtx, coords);
+                } else if ((e.type === 'mouseup' || e.type === 'touchend') && this.isPainting) {
+                     const activeTool = this.modules.get(this.activeToolId);
+                     if(activeTool) activeTool.handleEvent(e, null, null, this.lastPos);
+                }
+            },
+            
+            resizeCanvas(newWidth, newHeight, context = this.activeCanvasContext) {
+                const layers = this.getLayers(context);
+                const canvas = this.getCanvas();
+                const container = this.getCanvasContainer();
+
+                layers.forEach(layer => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = newWidth;
+                    tempCanvas.height = newHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(layer.canvas, 0, 0);
+                    layer.canvas.width = newWidth;
+                    layer.canvas.height = newHeight;
+                    layer.ctx.drawImage(tempCanvas, 0, 0);
+                });
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                container.style.width = `${newWidth}px`;
+                container.style.height = `${newHeight}px`;
+
+                this.resizeSelectionCanvases(context);
+                this.clearSelection();
+                
+                this.saveStateForUndo(context);
+                this.requestFullRedraw();
+            },
+            
+            expandCanvas(newWidth, newHeight, offsetX, offsetY, context = this.activeCanvasContext) {
+                const layers = this.getLayers(context);
+                const canvas = this.getCanvas();
+                const container = this.getCanvasContainer();
+
+                // 1. Expand all layers by redrawing them with an offset
+                layers.forEach(layer => {
+                    const tempLayerCanvas = document.createElement('canvas');
+                    tempLayerCanvas.width = newWidth;
+                    tempLayerCanvas.height = newHeight;
+                    tempLayerCanvas.getContext('2d').drawImage(layer.canvas, offsetX, offsetY);
+                    
+                    layer.canvas.width = newWidth;
+                    layer.canvas.height = newHeight;
+                    layer.ctx.drawImage(tempLayerCanvas, 0, 0);
+                });
+
+                // 2. Expand main canvas and its container
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                container.style.width = `${newWidth}px`;
+                container.style.height = `${newHeight}px`;
+
+                // 3. Expand the selection mask canvas with the offset
+                const tempMaskCanvas = document.createElement('canvas');
+                tempMaskCanvas.width = newWidth;
+                tempMaskCanvas.height = newHeight;
+                tempMaskCanvas.getContext('2d').drawImage(this.selectionMaskCanvas, offsetX, offsetY);
+                this.selectionMaskCanvas.width = newWidth;
+                this.selectionMaskCanvas.height = newHeight;
+                this.selectionMaskCtx.drawImage(tempMaskCanvas, 0, 0);
+
+                // 4. Just resize the overlay, it's redrawn every frame
+                this.selectionOverlayCanvas.width = newWidth;
+                this.selectionOverlayCanvas.height = newHeight;
+                
+                // 5. Update the main canvas dimensions for other modules
+                const widthInput = document.getElementById('width-input');
+                const heightInput = document.getElementById('height-input');
+                if (widthInput) widthInput.value = newWidth;
+                if (heightInput) heightInput.value = newHeight;
+                this.notifyModules('updateDimensionDisplay');
+
+
+                this.requestFullRedraw();
+            },
+
+            resizeSelectionCanvases(context) {
+                const targetCanvas = this.getCanvas();
+                this.selectionMaskCanvas.width = targetCanvas.width;
+                this.selectionMaskCanvas.height = targetCanvas.height;
+                this.selectionOverlayCanvas.width = targetCanvas.width;
+                this.selectionOverlayCanvas.height = targetCanvas.height;
+            },
+
+            clearSelection() {
+    if (this.getState('hasSelection')) {
+        this.mergeSelectionLayer();
+    }
+
+    // Clear the selection mask and reset all state flags
+    this.selectionMaskCtx.clearRect(0, 0, this.selectionMaskCanvas.width, this.selectionMaskCanvas.height);
+    this.globalState.selectionRect = null;
+    this.globalState.selectionSourceLayerIndex = -1; // Add this line to reset the source
+    this.setState('hasSelection', false);
+    this.clearSelectionOverlay();
+},
+
+            mergeSelectionLayer(context = this.activeCanvasContext) {
+                const selectionLayer = this.getSelectionLayer(context);
+                if (!selectionLayer) return;
+
+                const layers = this.getLayers(context);
+                const sourceIndex = this.getState('selectionSourceLayerIndex');
+                const targetLayer = layers[sourceIndex];
+
+                // Paste the pixels from the selection layer back to their original source layer
+                if (targetLayer && targetLayer.id !== selectionLayer.id) {
+                    targetLayer.ctx.drawImage(selectionLayer.canvas, 0, 0);
+                }
+                
+                // Clear the selection layer
+                selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                setTimeout(() => this.saveStateForUndo(context), 0);
+                this.requestFullRedraw();
+            },
+
+promoteToSelectionLayer(context = this.activeCanvasContext) {
+    const layers = this.getLayers(context);
+    const selectionLayer = this.getSelectionLayer(context);
+    const activeLayerIndex = this.getActiveLayerIndex(context);
+
+    // Determine the source layer for the pixels
+    let sourceLayerIndex = this.getState('selectionSourceLayerIndex');
+
+    if (sourceLayerIndex === -1) {
+        // This is a new selection. The source is the currently active layer.
+        if (layers[activeLayerIndex]?.id === selectionLayer.id) return; // Don't select from the selection layer
+        sourceLayerIndex = activeLayerIndex;
+        this.globalState.selectionSourceLayerIndex = sourceLayerIndex;
+    }
+
+    const sourceLayer = layers[sourceLayerIndex];
+    if (!sourceLayer || !this.getState('hasSelection')) {
+        return;
+    }
+    const rect = this.globalState.selectionRect;
+    if (!rect) return;
+
+    // Create a temporary canvas with the selected pixels from the SOURCE layer
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = rect.w;
+    tempCanvas.height = rect.h;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(sourceLayer.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+    tempCtx.globalCompositeOperation = 'destination-in';
+    tempCtx.drawImage(this.selectionMaskCanvas, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
+
+    // Clear the selection layer before adding new pixels
+    selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+    selectionLayer.ctx.drawImage(tempCanvas, rect.x, rect.y);
+
+    // Erase the original pixels from the SOURCE layer
+    sourceLayer.ctx.save();
+    sourceLayer.ctx.globalCompositeOperation = 'destination-out';
+    sourceLayer.ctx.drawImage(this.selectionMaskCanvas, 0, 0);
+    sourceLayer.ctx.restore();
+
+    setTimeout(() => this.saveStateForUndo(context), 0);
+    this.requestFullRedraw();
+},
+
+
+            finalizeSelection() {
+                const { width, height } = this.selectionMaskCanvas;
+                const imageData = this.selectionMaskCtx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                let minX = width, minY = height, maxX = 0, maxY = 0;
+                let hasPixels = false;
+
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        if (data[(y * width + x) * 4 + 3] > 0) {
+                            hasPixels = true;
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+
+                if (hasPixels) {
+                    this.globalState.selectionRect = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+                    this.setState('hasSelection', true);
+                    this.drawSelectionOverlay();
+                } else {
+                    this.clearSelection();
+                }
+            },
+
+            drawSelectionOverlay() {
+                const ctx = this.selectionOverlayCtx;
+                const { width, height } = this.selectionOverlayCanvas;
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(this.selectionMaskCanvas, 0, 0);
+                ctx.globalCompositeOperation = 'source-in';
+                ctx.fillStyle = 'rgba(0, 170, 255, 0.3)';
+                ctx.fillRect(0, 0, width, height);
+                ctx.globalCompositeOperation = 'source-over';
+            },
+
+            clearSelectionOverlay() {
+                const ctx = this.selectionOverlayCtx;
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            },
+
+            updateSelectionMaskPosition(dx, dy) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = this.selectionMaskCanvas.width;
+                tempCanvas.height = this.selectionMaskCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(this.selectionMaskCanvas, dx, dy);
+                this.selectionMaskCtx.clearRect(0, 0, this.selectionMaskCanvas.width, this.selectionMaskCanvas.height);
+                this.selectionMaskCtx.drawImage(tempCanvas, 0, 0);
+            },
+            
+copySelection() {
+                if (!this.getState('hasSelection')) return;
+                const rect = this.globalState.selectionRect;
+                const selectionLayer = this.getSelectionLayer(); // FIX: Source pixels from the selection layer.
+
+                if (!selectionLayer || !rect) return;
+
+                // Create a temporary canvas to correctly mask and copy the floating pixels.
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = selectionLayer.canvas.width;
+                tempCanvas.height = selectionLayer.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // Copy the live pixels from the selection layer and apply the selection mask.
+                tempCtx.drawImage(selectionLayer.canvas, 0, 0);
+                tempCtx.globalCompositeOperation = 'destination-in';
+                tempCtx.drawImage(this.selectionMaskCanvas, 0, 0);
+
+                // Get the image data from the masked result to store in the clipboard.
+                const finalImageData = tempCtx.getImageData(rect.x, rect.y, rect.w, rect.h);
+                this.setState('clipboardData', { imageData: finalImageData, width: rect.w, height: rect.h });
+                this.notifyModules('onClipboardChange', this.getState('clipboardData'));
+            },
+
+            cutSelection() {
+                if (!this.getState('hasSelection')) return;
+                
+                // 1. Copy the selected pixels from the selection layer to the clipboard.
+                this.copySelection(); 
+
+                // 2. Clear the floating selection layer canvas.
+                const selectionLayer = this.getSelectionLayer();
+                if (selectionLayer) {
+                    selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                }
+                
+                // 3. Clear the selection state (mask, rect, etc.) without merging.
+                this.selectionMaskCtx.clearRect(0, 0, this.selectionMaskCanvas.width, this.selectionMaskCanvas.height);
+                this.globalState.selectionRect = null;
+                this.globalState.selectionSourceLayerIndex = -1;
+                this.setState('hasSelection', false);
+                this.clearSelectionOverlay();
+
+                // 4. Redraw and save state.
+                this.requestFullRedraw();
+                setTimeout(() => this.saveStateForUndo(), 0);
+            },
+
+            pasteFromClipboard() {
+                const clipboard = this.getState('clipboardData');
+                if (!clipboard) return;
+            
+                const canvas = this.getCanvas();
+                const pasteX = (canvas.width - clipboard.width) / 2;
+                const pasteY = (canvas.height - clipboard.height) / 2;
+                
+                // Special handling for the Omni Brush canvas
+                if (this.activeCanvasContext === 'OmniBrush') {
+                    const activeLayer = this.getActiveLayer();
+                    if (!activeLayer) return;
+            
+                    // Create a temporary canvas from the clipboard image data to draw it
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = clipboard.width;
+                    tempCanvas.height = clipboard.height;
+                    tempCanvas.getContext('2d').putImageData(clipboard.imageData, 0, 0);
+                    
+                    // Draw the clipboard content directly onto the active layer
+                    activeLayer.ctx.drawImage(tempCanvas, pasteX, pasteY);
+                    
+                    this.saveStateForUndo();
+                    this.requestFullRedraw();
+                    return; // Exit here, skipping selection logic
+                }
+            
+                // Default behavior for the main canvas
+                
+                // 1. Finalize (stamp down) any existing selection before pasting.
+                this.clearSelection();
+            
+                // 2. The newly pasted selection will belong to the currently active layer.
+                this.globalState.selectionSourceLayerIndex = this.getActiveLayerIndex();
+            
+                // 3. Put clipboard data onto a cleared selection layer at the centered position.
+                const selectionLayer = this.getSelectionLayer();
+                selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                selectionLayer.ctx.putImageData(clipboard.imageData, pasteX, pasteY);
+            
+                // 4. Recreate the selection mask based on the pasted content at the centered position.
+                this.selectionMaskCtx.clearRect(0, 0, this.selectionMaskCanvas.width, this.selectionMaskCanvas.height);
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = clipboard.width;
+                tempCanvas.height = clipboard.height;
+                tempCanvas.getContext('2d').putImageData(clipboard.imageData, 0, 0);
+                this.selectionMaskCtx.drawImage(tempCanvas, pasteX, pasteY);
+                
+                // 5. Finalize the new selection and activate the move tool.
+                this.finalizeSelection();
+                if (this.getState('hasSelection')) {
+                    this.setActiveTool('modart.tool.move');
+                }
+                
+                this.requestFullRedraw();
+                this.saveStateForUndo();
+            },
+
+            stampMovingData() {
+                const movingData = this.getState('movingData');
+                if (!movingData) return;
+
+                const activeCtx = this.getActiveLayer().ctx;
+                activeCtx.drawImage(movingData.drawable, movingData.x, movingData.y);
+
+                this.setState('movingData', null);
+                this.saveStateForUndo();
+                this.requestFullRedraw();
+            },
+            
+            createStateSnapshot(context) {
+                const layers = this.getLayers(context);
+                const canvas = context === 'main' ? this.mainCanvas : this.OmniBrushCanvas;
+                return {
+                    layers: layers.map(l => ({
+                        id: l.id, // This line is added
+                        imageData: l.canvas.toDataURL(),
+                        name: l.name,
+                        visible: l.visible,
+                        opacity: l.opacity
+                    })),
+                    activeLayerIndex: this.getActiveLayerIndex(context),
+                    width: canvas.width,
+                    height: canvas.height,
+                };
+            },
+
+            restoreState(state, context) {
+                // Keep a reference to the current, live selection layer
+                const currentSelectionLayer = this.getSelectionLayer(context);
+                const selectionLayerId = currentSelectionLayer.id;
+
+                const canvas = context === 'main' ? this.mainCanvas : this.OmniBrushCanvas;
+                canvas.width = state.width;
+                canvas.height = state.height;
+                this.layerStacks[context] = [];
+
+                const promises = state.layers.map(layerData => {
+                    return new Promise(resolve => {
+                        const newLayer = {
+                            id: layerData.id, // Use the saved ID
+                            name: layerData.name,
+                            canvas: document.createElement('canvas'),
+                            visible: layerData.visible,
+                            opacity: layerData.opacity
+                        };
+                        newLayer.canvas.width = state.width;
+                        newLayer.canvas.height = state.height;
+                        newLayer.ctx = newLayer.canvas.getContext('2d', { willReadFrequently: true });
+                        const img = new Image();
+                        img.onload = () => {
+                            newLayer.ctx.drawImage(img, 0, 0);
+                            resolve(newLayer);
+                        };
+                        img.src = layerData.imageData;
+                    });
+                });
+
+                Promise.all(promises).then(loadedLayers => {
+                    // Find where the outdated selection layer is in the restored stack
+                    const restoredSelectionLayerIndex = loadedLayers.findIndex(l => l.id === selectionLayerId);
+                    
+                    // Replace the outdated version with the live version we saved earlier
+                    if (restoredSelectionLayerIndex !== -1) {
+                        loadedLayers[restoredSelectionLayerIndex] = currentSelectionLayer;
+                    }
+
+                    this.layerStacks[context] = loadedLayers;
+                    this.setActiveLayer(state.activeLayerIndex, context);
+                    this.requestFullRedraw();
+                    this.notifyModules('onHistoryChange', this.getHistory(context).undoStack, this.getHistory(context).redoStack);
+                });
+            },
+            
+            saveStateForUndo(context = this.activeCanvasContext) {
+                const history = this.getHistory(context);
+                history.redoStack = [];
+                const snapshot = this.createStateSnapshot(context);
+                history.undoStack.push(snapshot);
+                if (history.undoStack.length > history.maxSize) history.undoStack.shift();
+                this.notifyModules('onHistoryChange', history.undoStack, history.redoStack);
+            },
+
+            undo() { this._undo(this.activeCanvasContext); },
+            redo() { this._redo(this.activeCanvasContext); },
+            _undo(context) {
+                const history = this.getHistory(context);
+                if (history.undoStack.length <= 1) return;
+                const currentState = history.undoStack.pop();
+                history.redoStack.push(currentState);
+                const prevState = history.undoStack[history.undoStack.length - 1];
+                this.restoreState(prevState, context);
+            },
+            _redo(context) {
+                const history = this.getHistory(context);
+                if (history.redoStack.length === 0) return;
+                const nextState = history.redoStack.pop();
+                history.undoStack.push(nextState);
+                this.restoreState(nextState, context);
+            },
+        };
+
+        // --- MODULES ---
+        
+        const ViewModule = {
+            id: 'modart.view',
+            name: 'View Controls',
+            core: null,
+            isPanning: false,
+            panStart: { x: 0, y: 0 },
+            
+            isPinching: false,
+            pinchStartDist: 0,
+
+            init(core) {
+                this.core = core;
+            },
+
+            handleZoom(e) {
+                e.preventDefault();
+                const transform = this.core.getViewTransform();
+                const canvasAreaRect = e.currentTarget.getBoundingClientRect();
+
+                const mouseX = e.clientX - canvasAreaRect.left;
+                const mouseY = e.clientY - canvasAreaRect.top;
+
+                const zoomFactor = 1.1;
+                const newScale = e.deltaY < 0 ? transform.scale * zoomFactor : transform.scale / zoomFactor;
+                const clampedScale = Math.max(0.1, Math.min(newScale, 20));
+
+                const worldX = (mouseX - transform.offsetX) / transform.scale;
+                const worldY = (mouseY - transform.offsetY) / transform.scale;
+
+                const newOffsetX = mouseX - worldX * clampedScale;
+                const newOffsetY = mouseY - worldY * clampedScale;
+                
+                this.core.setViewTransform({
+                    scale: clampedScale,
+                    offsetX: newOffsetX,
+                    offsetY: newOffsetY,
+                });
+            },
+
+            handlePanStart(e) {
+                e.preventDefault();
+                this.isPanning = true;
+                const transform = this.core.getViewTransform();
+                
+                let clientX = e.clientX;
+                let clientY = e.clientY;
+                if(e.touches) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+
+                this.panStart = {
+                    x: clientX,
+                    y: clientY,
+                    offsetX: transform.offsetX,
+                    offsetY: transform.offsetY,
+                };
+                document.getElementById('canvas-area').style.cursor = 'grabbing';
+            },
+
+            handlePanMove(e) {
+                if (this.isPanning) {
+                    let clientX = e.clientX;
+                    let clientY = e.clientY;
+                    if(e.touches) {
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                    }
+
+                    const dx = clientX - this.panStart.x;
+                    const dy = clientY - this.panStart.y;
+                    this.core.setViewTransform({
+                        scale: this.core.getViewTransform().scale,
+                        offsetX: this.panStart.offsetX + dx,
+                        offsetY: this.panStart.offsetY + dy,
+                    });
+                }
+            },
+
+            handlePanEnd(e) {
+                if (this.isPanning) {
+                    this.isPanning = false;
+                    document.getElementById('canvas-area').style.cursor = 'default';
+                }
+            },
+            
+            handlePinchPanStart(e) {
+                this.core.isPainting = false;
+                e.preventDefault();
+                this.isPinching = true;
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                this.pinchStartDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                
+                const transform = this.core.getViewTransform();
+                this.panStart = {
+                    x: (t1.clientX + t2.clientX) / 2,
+                    y: (t1.clientY + t2.clientY) / 2,
+                    offsetX: transform.offsetX,
+                    offsetY: transform.offsetY,
+                    scale: transform.scale
+                };
+            },
+            
+            handlePinchPanMove(e) {
+                if (!this.isPinching || e.touches.length < 2) return;
+                e.preventDefault();
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+
+                const currentMidX = (t1.clientX + t2.clientX) / 2;
+                const currentMidY = (t1.clientY + t2.clientY) / 2;
+                const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+                const initialMidX = this.panStart.x;
+                const initialMidY = this.panStart.y;
+                const initialScale = this.panStart.scale;
+                const initialOffsetX = this.panStart.offsetX;
+                const initialOffsetY = this.panStart.offsetY;
+                const initialDist = this.pinchStartDist;
+                
+                const finalScale = initialScale * (currentDist / initialDist);
+                const clampedScale = Math.max(0.1, Math.min(finalScale, 20));
+
+                const canvasAreaRect = document.getElementById('canvas-area').getBoundingClientRect();
+                const m1_x = currentMidX - canvasAreaRect.left;
+                const m1_y = currentMidY - canvasAreaRect.top;
+                const m0_x = initialMidX - canvasAreaRect.left;
+                const m0_y = initialMidY - canvasAreaRect.top;
+                
+                const finalOffsetX = m1_x - (clampedScale / initialScale) * (m0_x - initialOffsetX);
+                const finalOffsetY = m1_y - (clampedScale / initialScale) * (m0_y - initialOffsetY);
+
+                this.core.setViewTransform({
+                    scale: clampedScale,
+                    offsetX: finalOffsetX,
+                    offsetY: finalOffsetY,
+                });
+            },
+
+            handlePinchPanEnd(e) {
+                this.isPinching = false;
+            }
+        };
+        const HistoryModule = {
+            id: 'modart.history', name: 'History', core: null, undoBtn: null, redoBtn: null,
+            init(core) {
+                this.core = core;
+                document.getElementById('sidebar-container').insertAdjacentHTML('afterbegin', this.getUIPanel());
+                this.undoBtn = document.getElementById('undo-btn');
+                this.redoBtn = document.getElementById('redo-btn');
+                this.undoBtn.addEventListener('click', () => this.core.undo());
+                this.redoBtn.addEventListener('click', () => this.core.redo());
+                window.addEventListener('keydown', e => {
+                    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+                    const isCtrl = isMac ? e.metaKey : e.ctrlKey;
+                    if (isCtrl && e.key === 'z') { e.preventDefault(); e.shiftKey ? this.core.redo() : this.core.undo(); } 
+                    else if (isCtrl && e.key === 'y') { e.preventDefault(); this.core.redo(); }
+                });
+                this.onHistoryChange([], []);
+            },
+            getUIPanel() { return `<div class="panel"><div class="panel-header">History</div><div class="history-buttons"><button id="undo-btn">Undo</button><button id="redo-btn">Redo</button></div></div>`; },
+            onHistoryChange(undoStack, redoStack) { this.undoBtn.disabled = undoStack.length <= 1; this.redoBtn.disabled = redoStack.length === 0; },
+            onCanvasContextChange(context) { const history = this.core.getHistory(context); this.onHistoryChange(history.undoStack, history.redoStack); }
+        };
+        const FileModule = {
+            id: 'modart.file', name: 'File', core: null,
+            init(core) {
+                this.core = core;
+                document.getElementById('sidebar-container').insertAdjacentHTML('afterbegin', this.getUIPanel());
+                document.getElementById('import-image-btn').addEventListener('click', () => this.importImage());
+                document.getElementById('open-project-btn').addEventListener('click', () => this.openProject());
+                document.getElementById('save-project-btn').addEventListener('click', () => this.saveProject());
+                document.getElementById('export-png-btn').addEventListener('click', () => this.exportImage('png'));
+                document.getElementById('export-jpeg-btn').addEventListener('click', () => this.exportImage('jpeg'));
+                this.fileInput = document.createElement('input'); this.fileInput.type = 'file'; this.fileInput.style.display = 'none';
+                this.projectInput = document.createElement('input'); this.projectInput.type = 'file'; this.projectInput.accept = '.modart'; this.projectInput.style.display = 'none';
+            },
+            getUIPanel() { return `<div class="panel file-buttons"><div class="panel-header">File</div><button id="import-image-btn">Import Image...</button><button id="open-project-btn">Open Project...</button><button id="save-project-btn">Save Project...</button><div class="sub-group"><button id="export-png-btn">Export as PNG</button><button id="export-jpeg-btn">Export as JPEG</button></div></div>`; },
+            triggerDownload(href, filename) { const link = document.createElement('a'); link.href = href; link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); },
+            importImage() {
+                this.fileInput.accept = 'image/*';
+                this.fileInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const newLayer = this.core.addLayer(file.name);
+                            this.core.setActiveLayer(this.core.getLayers().length - 1);
+                            newLayer.ctx.drawImage(img, 0, 0);
+                            this.core.saveStateForUndo();
+                            this.core.requestFullRedraw();
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    this.fileInput.value = '';
+                };
+                this.fileInput.click();
+            },
+            openProject() {
+                this.projectInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const projectData = JSON.parse(event.target.result);
+                            this.core.loadProject(projectData);
+                        } catch (err) {
+                            alert("Error: Could not open the project file.");
+                        }
+                    };
+                    reader.readAsText(file);
+                    this.projectInput.value = '';
+                };
+                this.projectInput.click();
+            },
+            saveProject() {
+                const projectData = this.core.createStateSnapshot('main');
+                const jsonString = JSON.stringify(projectData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                this.triggerDownload(url, 'my-artwork.modart');
+                URL.revokeObjectURL(url);
+            },
+            exportImage(format = 'png') {
+                const mimeType = `image/${format}`;
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = this.core.mainCanvas.width;
+                tempCanvas.height = this.core.mainCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                if (format === 'jpeg') {
+                    tempCtx.fillStyle = 'white';
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                }
+                this.core.getLayers('main').forEach(layer => {
+                    if (layer.visible) {
+                        tempCtx.globalAlpha = layer.opacity;
+                        tempCtx.drawImage(layer.canvas, 0, 0);
+                    }
+                });
+                const url = tempCanvas.toDataURL(mimeType, 0.9);
+                this.triggerDownload(url, `export.${format}`);
+            }
+        };
+        const LayersPanelModule = {
+            id: 'modart.layers.panel', name: 'Layers Panel', core: null,
+            init(core) {
+                this.core = core;
+                document.getElementById('sidebar-container').insertAdjacentHTML('beforeend', this.getUIPanel());
+                document.getElementById('add-layer-btn').addEventListener('click', () => { this.core.addLayer(); this.core.setActiveLayer(this.core.getLayers().length - 1); });
+                document.getElementById('remove-layer-btn').addEventListener('click', () => this.core.removeLayer(this.core.getActiveLayerIndex()));
+            },
+            getUIPanel() { return `<div class="panel"><div class="panel-header">Layers</div><div id="layers-container"></div><div class="layer-buttons"><button id="add-layer-btn">+ Add</button><button id="remove-layer-btn">- Remove</button></div></div>`; },
+            onCanvasContextChange(context) { this.onCanvasRedraw(this.core.getLayers(), this.core.getActiveLayerIndex()); },
+            onCanvasRedraw(layers, activeIndex) {
+                const container = document.getElementById('layers-container');
+                if (!container) return;
+                container.innerHTML = '';
+                const selectionLayer = this.core.getSelectionLayer();
+
+                [...layers].reverse().forEach((layer, i) => {
+                    const actualIndex = layers.length - 1 - i;
+                    const item = document.createElement('div');
+                    item.className = 'layer-item';
+                    if (actualIndex === activeIndex) item.classList.add('active');
+                    if (layer.id === selectionLayer.id) {
+                        item.classList.add('selection-layer');
+                    }
+                    
+                    item.setAttribute('draggable', true);
+                    item.dataset.index = actualIndex;
+                    item.innerHTML = `<span>${layer.name}</span>`;
+                    item.addEventListener('click', () => this.core.setActiveLayer(actualIndex));
+
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', actualIndex);
+                        e.dataTransfer.effectAllowed = 'move';
+                        setTimeout(() => item.classList.add('dragging'), 0);
+                    });
+
+                    item.addEventListener('dragend', () => {
+                        item.classList.remove('dragging');
+                    });
+                    
+                    item.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                    });
+
+                    item.addEventListener('dragenter', (e) => {
+                        e.preventDefault();
+                        if (e.target.classList.contains('layer-item')) {
+                             e.target.classList.add('drag-over');
+                        }
+                    });
+
+                    item.addEventListener('dragleave', (e) => {
+                         if (e.target.classList.contains('layer-item')) {
+                            e.target.classList.remove('drag-over');
+                        }
+                    });
+
+                    item.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        item.classList.remove('drag-over');
+                        
+                        const startIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                        const endIndex = actualIndex;
+
+                        if (startIndex !== endIndex) {
+                            this.core.reorderLayer(startIndex, endIndex);
+                        }
+                    });
+
+                    container.appendChild(item);
+                });
+            }
+        };
+        const BrushSettingsModule = {
+            id: 'modart.brush.settings', name: 'Brush Settings', core: null,
+            init(core) { this.core = core; document.getElementById('sidebar-container').insertAdjacentHTML('beforeend', this.getUIPanel()); document.getElementById('brush-size-slider').addEventListener('input', (e) => this.core.setState('brushSize', parseInt(e.target.value, 10))); document.getElementById('brush-opacity-slider').addEventListener('input', (e) => this.core.setState('opacity', parseFloat(e.target.value))); },
+            getUIPanel() { return `<div class="panel"><div class="panel-header">Brush Settings</div><div class="control-group"><label>Size</label><input type="range" id="brush-size-slider" min="1" max="200" value="50"></div><div class="control-group"><label>Opacity</label><input type="range" id="brush-opacity-slider" min="0.05" max="1.0" step="0.05" value="1.0"></div></div>`; }
+        };
+        const ColorPickerModule = {
+            id: 'modart.color.picker', name: 'Color Picker', core: null,
+            init(core) { this.core = core; document.getElementById('sidebar-container').insertAdjacentHTML('beforeend', this.getUIPanel()); document.getElementById('color-picker-input').addEventListener('input', (e) => this.core.setState('color', e.target.value)); },
+            getUIPanel() { return `<div class="panel"><div class="panel-header">Color</div><div class="control-group"><input type="color" id="color-picker-input" value="#ff0000"></div></div>`; }
+        };
+                const ActionsModule = {
+            id: 'modart.actions', name: 'Actions', core: null, copyBtn: null, cutBtn: null, pasteBtn: null,
+            init(core) {
+                this.core = core;
+                document.getElementById('sidebar-container').insertAdjacentHTML('beforeend', this.getUIPanel());
+                this.copyBtn = document.getElementById('copy-btn');
+                this.cutBtn = document.getElementById('cut-btn');
+                this.pasteBtn = document.getElementById('paste-btn');
+                this.copyBtn.addEventListener('click', () => this.core.copySelection());
+                this.cutBtn.addEventListener('click', () => this.core.cutSelection());
+                this.pasteBtn.addEventListener('click', () => this.core.pasteFromClipboard());
+
+                window.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                        return;
+                    }
+
+                    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+                    const isCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+                    if (isCtrl) {
+                        switch (e.key.toLowerCase()) {
+                            case 'c':
+                                e.preventDefault();
+                                this.core.copySelection();
+                                break;
+                            case 'x':
+                                e.preventDefault();
+                                this.core.cutSelection();
+                                break;
+                            case 'v':
+                                e.preventDefault();
+                                this.core.pasteFromClipboard();
+                                break;
+                            case 'd':
+                                const activeLayer = this.core.getActiveLayer();
+                                const selectionLayer = this.core.getSelectionLayer();
+
+                                // Only deselect if the active layer is NOT the selection layer
+                                if (activeLayer && selectionLayer && activeLayer.id !== selectionLayer.id) {
+                                    e.preventDefault();
+                                    this.core.clearSelection();
+                                }
+                                break;
+                        }
+                    }
+                });
+
+                this.onSelectionChange(null);
+                this.onClipboardChange(null);
+            },
+            getUIPanel() { return `<div class="panel"><div class="panel-header">Actions</div><button id="copy-btn">Copy</button><button id="cut-btn">Cut</button><button id="paste-btn">Paste</button></div>`; },
+            onSelectionChange(hasSelection) {
+                this.copyBtn.disabled = !hasSelection;
+                this.cutBtn.disabled = !hasSelection;
+            },
+            onClipboardChange(clipboardData) { this.pasteBtn.disabled = !clipboardData; }
+        };
+        const CanvasSettingsModule = {
+            id: 'modart.canvas.settings', name: 'Canvas Settings', core: null,
+            widthInput: null, heightInput: null, ppiInput: null, dimensionsDisplay: null, 
+
+            init(core) {
+                this.core = core;
+                document.getElementById('sidebar-container').insertAdjacentHTML('beforeend', this.getUIPanel());
+
+                this.widthInput = document.getElementById('width-input');
+                this.heightInput = document.getElementById('height-input');
+                this.ppiInput = document.getElementById('ppi-input');
+                this.dimensionsDisplay = document.getElementById('physical-dimensions');
+
+                this.widthInput.value = this.core.mainCanvas.width;
+                this.heightInput.value = this.core.mainCanvas.height;
+                this.ppiInput.value = this.core.getState('ppi');
+
+                document.getElementById('resize-btn').addEventListener('click', () => {
+                    const w = parseInt(this.widthInput.value, 10);
+                    const h = parseInt(this.heightInput.value, 10);
+                    if (w > 0 && h > 0) this.core.resizeCanvas(w, h, this.core.activeCanvasContext);
+                });
+
+                this.widthInput.addEventListener('input', () => this.updateDimensionDisplay());
+                this.heightInput.addEventListener('input', () => this.updateDimensionDisplay());
+                this.ppiInput.addEventListener('input', () => {
+                    const ppi = parseInt(this.ppiInput.value, 10);
+                    if (ppi > 0) {
+                        this.core.setState('ppi', ppi);
+                    }
+                    this.updateDimensionDisplay();
+                });
+
+                this.updateDimensionDisplay(); // Initial calculation
+            },
+            
+            getUIPanel() { 
+                return `<div class="panel">
+                            <div class="panel-header">Canvas</div>
+                            <div class="control-group">
+                                <label>Width:</label><input type="number" id="width-input">
+                                <label>Height:</label><input type="number" id="height-input">
+                                <label>PPI:</label><input type="number" id="ppi-input">
+                            </div>
+                            <div id="physical-dimensions" style="font-size: 0.9em; color: #aaa; margin-bottom: 10px; text-align: center;"></div>
+                            <button id="resize-btn">Resize</button>
+                        </div>`;
+            },
+            
+            updateDimensionDisplay() {
+                const w = parseInt(this.widthInput.value, 10) || 0;
+                const h = parseInt(this.heightInput.value, 10) || 0;
+                const ppi = parseInt(this.ppiInput.value, 10) || this.core.getState('ppi');
+
+                if (w > 0 && h > 0 && ppi > 0) {
+                    const widthIn = (w / ppi).toFixed(2);
+                    const heightIn = (h / ppi).toFixed(2);
+                    this.dimensionsDisplay.textContent = `${widthIn}" x ${heightIn}" @ ${ppi} PPI`;
+                } else {
+                    this.dimensionsDisplay.textContent = 'Invalid dimensions';
+                }
+            },
+
+            onCanvasContextChange(context) {
+                const canvas = this.core.getCanvas();
+                this.widthInput.value = canvas.width;
+                this.heightInput.value = canvas.height;
+                this.ppiInput.value = this.core.getState('ppi');
+                this.updateDimensionDisplay();
+            }
+        };
+        const BrushManagerModule = {
+            id: 'modart.brush.manager', name: 'Brush Manager', core: null, brushes: [],
+            init(core) {
+                this.core = core; document.getElementById('sidebar-container').insertAdjacentHTML('beforeend', this.getUIPanel());
+                this.fileInput = document.createElement('input'); this.fileInput.type = 'file'; this.fileInput.accept = 'image/*'; this.fileInput.style.display = 'none';
+                document.getElementById('import-brush-btn').addEventListener('click', () => this.fileInput.click());
+                this.fileInput.onchange = (e) => {
+                    const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
+                    reader.onload = (event) => { const img = new Image(); img.onload = () => { this.addBrush(img); }; img.src = event.target.result; };
+                    reader.readAsDataURL(file); this.fileInput.value = '';
+                };
+            },
+            getUIPanel() { return `<div class="panel"><div class="panel-header">Custom Brushes</div><div id="custom-brushes-container"></div><button id="import-brush-btn">Import Brush/Stamp...</button></div>`; },
+            addBrush(image) { this.brushes.push(image); this.renderBrushList(); },
+            renderBrushList() {
+                const container = document.getElementById('custom-brushes-container'); container.innerHTML = '';
+                this.brushes.forEach(brushImg => {
+                    const thumb = new Image(); thumb.src = brushImg.src; thumb.className = 'custom-brush-thumbnail';
+                    if (this.core.getState('activeBrush') === brushImg) { thumb.classList.add('active'); }
+                    thumb.addEventListener('click', () => { this.core.setState('activeBrush', brushImg); });
+                    container.appendChild(thumb);
+                });
+            },
+            onActiveBrushChange(activeBrush) { this.renderBrushList(); }
+        };
+        const BrushToolModule = {
+            id: 'modart.tool.brush', name: 'Brush', core: null, hasMoved: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24"><path d="M13.5,1c-0.2,0.4-0.1,0.8-0.1,1.2c0,1-0.1,2-0.2,3c-0.2,1.2-0.3,2.5-0.7,3.6c-0.2,0.6-0.5,1.2-0.9,1.7 c-0.5,0.7-1.2,1.2-1.9,1.7c-0.4,0.3-0.8,0.5-1.2,0.8c-0.2,0.1-0.3,0.2-0.5,0.3c-1,0.5-2,1.1-3,1.6c-1,0.5-2.1,1-3.1,1.5 c0,0-0.1,0-0.1,0.1c-0.4,0.2-0.8,0.4-1.2,0.6C0.1,16.8,0,16.9,0,17c0,0.1,0.1,0.3,0.2,0.4c0.1,0.2,0.2,0.3,0.4,0.5 c0.2,0.2,0.5,0.3,0.7,0.5c0.2,0.1,0.5,0.2,0.7,0.3c0.7,0.3,1.5,0.5,2.2,0.8c1,0.3,2.1,0.6,3.1,0.8c0.5,0.1,1,0.2,1.5,0.3 c1.5,0.2,3,0.4,4.5,0.5c0.5,0,1,0.1,1.5,0.1c1.5,0,3-0.1,4.5-0.3c0.7-0.1,1.4-0.2,2-0.4c0.4-0.1,0.7-0.2,1-0.4 c0.1,0,0.2-0.1,0.3-0.1c0,0,0.1,0,0.1-0.1c0,0-0.1-0.1-0.1-0.1c-1-0.5-2-1-3-1.6c-1-0.6-2-1.2-2.9-1.9c-0.5-0.4-1-0.8-1.4-1.3 c-0.1-0.1-0.1-0.2-0.2-0.3c-0.5-0.6-1-1.3-1.3-2c-0.2-0.4-0.3-0.8-0.5-1.2c-0.1-0.5-0.2-1-0.3-1.5c-0.3-1.5-0.5-3-0.5-4.5 c0-0.5,0-1,0.1-1.5c0-0.2,0.1-0.5,0.1-0.7c0.1-0.4,0.1-0.8,0.2-1.2c0-0.2,0-0.3,0.1-0.5c0-0.1,0.1-0.2,0.1-0.2 C13.6,1.1,13.5,1.1,13.5,1z"/></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+                this.hasMoved = false;
+            },
+            handleEvent(event, rect, ctx, coords) {
+                const context = this.core.activeCanvasContext;
+                switch (event.type) {
+                    case 'mousedown':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        this.draw(coords.x, coords.y, ctx);
+                        break;
+                    case 'touchstart':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.core.isPainting) {
+                            this.hasMoved = true;
+                            this.draw(coords.x, coords.y, ctx);
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                        if (this.core.isPainting) {
+                            if (event.type === 'touchend' && !this.hasMoved) {
+                                this.draw(this.core.lastPos.x, this.core.lastPos.y, ctx);
+                            }
+                            this.core.saveStateForUndo(context);
+                            this.core.isPainting = false;
+                        }
+                        break;
+                    case 'mouseout':
+                         if (this.core.isPainting) {
+                            this.core.isPainting = false;
+                         }
+                        break;
+                }
+            },
+            draw(x, y, ctx) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = ctx.canvas.width;
+                tempCanvas.height = ctx.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                this._performDraw(x, y, tempCtx);
+
+                if (this.core.getState('hasSelection')) {
+                    tempCtx.globalCompositeOperation = 'destination-in';
+                    tempCtx.drawImage(this.core.selectionMaskCanvas, 0, 0);
+                }
+
+                ctx.drawImage(tempCanvas, 0, 0);
+                this.core.lastPos = { x, y };
+                this.core.requestFullRedraw();
+            },
+            _performDraw(x, y, ctx) {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = this.core.getState('color');
+                ctx.fillStyle = this.core.getState('color');
+                ctx.globalAlpha = this.core.getState('opacity');
+                ctx.lineWidth = this.core.getState('brushSize');
+                
+                ctx.beginPath();
+                ctx.moveTo(this.core.lastPos.x, this.core.lastPos.y);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(x, y, this.core.getState('brushSize') / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        };
+        const CustomBrushToolModule = {
+            id: 'modart.tool.custombrush', name: 'Custom Brush', core: null, tempCanvas: null, tempCtx: null, hasMoved: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24"><path d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z"/><path d="M2 20h20v2H2z"/></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+                this.tempCanvas = document.createElement('canvas');
+                this.tempCtx = this.tempCanvas.getContext('2d');
+                this.hasMoved = false;
+            },
+            handleEvent(event, rect, ctx, coords) {
+                const context = this.core.activeCanvasContext;
+                switch (event.type) {
+                    case 'mousedown':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        this.draw(coords.x, coords.y, ctx);
+                        break;
+                    case 'touchstart':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.core.isPainting) {
+                            this.hasMoved = true;
+                            this.draw(coords.x, coords.y, ctx);
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                        if (this.core.isPainting) {
+                            if (event.type === 'touchend' && !this.hasMoved) {
+                                this.draw(this.core.lastPos.x, this.core.lastPos.y, ctx);
+                            }
+                            this.core.saveStateForUndo(context);
+                            this.core.isPainting = false;
+                        }
+                        break;
+                    case 'mouseout':
+                         if (this.core.isPainting) {
+                            this.core.isPainting = false;
+                         }
+                        break;
+                }
+            },
+            createColorizedBrush(brushImg, color, size) {
+                this.tempCanvas.width = size; this.tempCanvas.height = size; this.tempCtx.clearRect(0, 0, size, size);
+                this.tempCtx.drawImage(brushImg, 0, 0, size, size);
+                this.tempCtx.globalCompositeOperation = 'source-in'; this.tempCtx.fillStyle = color;
+                this.tempCtx.fillRect(0, 0, size, size); this.tempCtx.globalCompositeOperation = 'source-over';
+                return this.tempCanvas;
+            },
+            draw(x, y, ctx) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = ctx.canvas.width;
+                tempCanvas.height = ctx.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                this._performDraw(x, y, tempCtx);
+
+                if (this.core.getState('hasSelection')) {
+                    tempCtx.globalCompositeOperation = 'destination-in';
+                    tempCtx.drawImage(this.core.selectionMaskCanvas, 0, 0);
+                }
+                
+                ctx.drawImage(tempCanvas, 0, 0);
+                this.core.lastPos = { x, y }; 
+                this.core.requestFullRedraw();
+            },
+            _performDraw(x, y, ctx) {
+                const activeBrush = this.core.getState('activeBrush'); if (!activeBrush) return;
+                const size = this.core.getState('brushSize'); const color = this.core.getState('color');
+                const colorizedBrush = this.createColorizedBrush(activeBrush, color, size);
+                ctx.globalAlpha = this.core.getState('opacity');
+                const dist = Math.hypot(x - this.core.lastPos.x, y - this.core.lastPos.y);
+                const angle = Math.atan2(y - this.core.lastPos.y, x - this.core.lastPos.x);
+                const step = Math.max(1, size / 4);
+                for (let i = 0; i < dist; i += step) {
+                    const px = this.core.lastPos.x + Math.cos(angle) * i; const py = this.core.lastPos.y + Math.sin(angle) * i;
+                    ctx.drawImage(colorizedBrush, px - size / 2, py - size / 2, size, size);
+                }
+                ctx.drawImage(colorizedBrush, x - size / 2, y - size / 2, size, size);
+            }
+        };
+        const StampToolModule = {
+            id: 'modart.tool.stamp', name: 'Stamp', core: null, hasMoved: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24"><path d="M19.38 5.62C18.2 5.21 17.06 5 15.93 5c-1.39 0-2.83.3-4.25.92C10.25 6.55 9 7.33 9 8.65V11h6V8.65c0-1.13-.67-2.12-1.62-2.65zM15 13H9V9.3c.69-.36 1.44-.64 2.25-.83 1.14-.26 2.31-.42 3.5-.42.92 0 1.83.16 2.75.45.69.22 1.25.56 1.25 1.15V13h-3z"/><path d="M21 6.5c0-1.5-1.5-2.5-3-2.5s-3 1-3 2.5V13h6V6.5zM3 14v5h18v-5H3z"/></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+                this.hasMoved = false;
+            },
+            handleEvent(event, rect, ctx, coords) {
+                const context = this.core.activeCanvasContext;
+                switch (event.type) {
+                    case 'mousedown':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        this.draw(coords.x, coords.y, ctx);
+                        break;
+                    case 'touchstart':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.core.isPainting) {
+                            this.hasMoved = true;
+                            this.draw(coords.x, coords.y, ctx);
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                        if (this.core.isPainting) {
+                            if (event.type === 'touchend' && !this.hasMoved) {
+                                this.draw(this.core.lastPos.x, this.core.lastPos.y, ctx);
+                            }
+                            this.core.saveStateForUndo(context);
+                            this.core.isPainting = false;
+                        }
+                        break;
+                    case 'mouseout':
+                         if (this.core.isPainting) {
+                            this.core.isPainting = false;
+                         }
+                        break;
+                }
+            },
+            draw(x, y, ctx) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = ctx.canvas.width;
+                tempCanvas.height = ctx.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                this._performDraw(x, y, tempCtx);
+                 
+                if (this.core.getState('hasSelection')) {
+                    tempCtx.globalCompositeOperation = 'destination-in';
+                    tempCtx.drawImage(this.core.selectionMaskCanvas, 0, 0);
+                }
+
+                ctx.drawImage(tempCanvas, 0, 0);
+                this.core.lastPos = { x, y }; 
+                this.core.requestFullRedraw();
+            },
+            _performDraw(x, y, ctx) {
+                const activeBrush = this.core.getState('activeBrush'); if (!activeBrush) return;
+                const size = this.core.getState('brushSize');
+                ctx.globalAlpha = this.core.getState('opacity');
+                const dist = Math.hypot(x - this.core.lastPos.x, y - this.core.lastPos.y);
+                const angle = Math.atan2(y - this.core.lastPos.y, x - this.core.lastPos.x);
+                const step = Math.max(1, size / 4);
+                for (let i = 0; i < dist; i += step) {
+                    const px = this.core.lastPos.x + Math.cos(angle) * i; const py = this.core.lastPos.y + Math.sin(angle) * i;
+                    ctx.drawImage(activeBrush, px - size / 2, py - size / 2, size, size);
+                }
+                ctx.drawImage(activeBrush, x - size / 2, y - size / 2, size, size);
+            }
+        };
+        const EraserToolModule = {
+            id: 'modart.tool.eraser', name: 'Eraser', core: null, hasMoved: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24"><path d="M16.24,3.56L20.44,7.76L7.76,20.44L3.56,16.24L16.24,3.56M22.56,5.63L20.44,7.76L16.24,3.56L18.37,1.44C18.76,1.05 19.39,1.05 19.78,1.44L22.56,4.22C22.95,4.61 22.95,5.24 22.56,5.63M3,17.24L7.76,22L17.24,12.53L12.53,7.76L3,17.24Z"/></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+                this.hasMoved = false;
+            },
+            handleEvent(event, rect, ctx, coords) {
+                const context = this.core.activeCanvasContext;
+                const drawAction = this.erase.bind(this);
+
+                switch (event.type) {
+                    case 'mousedown':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        drawAction(coords.x, coords.y, ctx);
+                        break;
+                    case 'touchstart':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.core.isPainting) {
+                            this.hasMoved = true;
+                            drawAction(coords.x, coords.y, ctx);
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                        if (this.core.isPainting) {
+                            if (event.type === 'touchend' && !this.hasMoved) {
+                                drawAction(this.core.lastPos.x, this.core.lastPos.y, ctx);
+                            }
+                            this.core.saveStateForUndo(context);
+                            this.core.isPainting = false;
+                        }
+                        break;
+                    case 'mouseout':
+                         if (this.core.isPainting) {
+                            this.core.isPainting = false;
+                         }
+                        break;
+                }
+            },
+            erase(x, y, ctx) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = ctx.canvas.width;
+                tempCanvas.height = ctx.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                tempCtx.drawImage(ctx.canvas, 0, 0);
+
+                tempCtx.globalCompositeOperation = 'destination-out';
+                tempCtx.lineCap = 'round'; tempCtx.lineJoin = 'round';
+                tempCtx.lineWidth = this.core.getState('brushSize');
+                tempCtx.beginPath(); tempCtx.moveTo(this.core.lastPos.x, this.core.lastPos.y); tempCtx.lineTo(x, y); tempCtx.stroke();
+                
+                if (this.core.getState('hasSelection')) {
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = ctx.canvas.width;
+                    finalCanvas.height = ctx.canvas.height;
+                    const finalCtx = finalCanvas.getContext('2d');
+                    finalCtx.drawImage(ctx.canvas, 0, 0);
+                    finalCtx.globalCompositeOperation = 'destination-in';
+                    finalCtx.drawImage(this.core.selectionMaskCanvas, 0, 0);
+                    finalCtx.globalCompositeOperation = 'source-over';
+                    finalCtx.drawImage(tempCanvas, 0, 0);
+                    ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
+                    ctx.drawImage(finalCanvas, 0, 0);
+                } else {
+                    ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
+                    ctx.drawImage(tempCanvas, 0, 0);
+                }
+
+                this.core.lastPos = { x, y }; 
+                this.core.requestFullRedraw();
+            }
+        };
+        const SelectionToolModule = {
+            id: 'modart.tool.selection', name: 'Selection', core: null, startPos: { x: 0, y: 0 }, isSelecting: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2z"/></svg>`;
+                button.addEventListener('click', () => { 
+                    this.core.setActiveTool(this.id);
+                });
+                toolbar.appendChild(button);
+            },
+            handleEvent(event, rect, ctx, coords) {
+                switch (event.type) {
+                    case 'mousedown': case 'touchstart': 
+                        this.isSelecting = true; 
+                        this.startPos = coords; 
+                        this.core.clearSelection();
+                        break;
+                    case 'mousemove': case 'touchmove': 
+                        if (this.isSelecting) { 
+                            const w = coords.x - this.startPos.x; 
+                            const h = coords.y - this.startPos.y; 
+                            const selRect = { 
+                                x: w > 0 ? this.startPos.x : coords.x, 
+                                y: h > 0 ? this.startPos.y : coords.y, 
+                                w: Math.abs(w), 
+                                h: Math.abs(h), 
+                            };
+                            this.core.selectionMaskCtx.clearRect(0,0,this.core.selectionMaskCanvas.width, this.core.selectionMaskCanvas.height);
+                            this.core.selectionMaskCtx.fillStyle = 'white';
+                            this.core.selectionMaskCtx.fillRect(selRect.x, selRect.y, selRect.w, selRect.h);
+                            this.core.drawSelectionOverlay();
+                        } 
+                        break;
+case 'mouseup': case 'touchend': case 'mouseout': 
+     if (this.isSelecting) {
+        this.isSelecting = false;
+        
+        // This is the new "rebase" logic
+        this.core.finalizeSelection();
+        if (this.core.getState('selectionSourceLayerIndex') !== -1) {
+            this.core.mergeSelectionLayer();
+        }
+        this.core.promoteToSelectionLayer();
+     }
+    break;
+                }
+            }
+        };
+        const SelectionBrushToolModule = {
+            id: 'modart.tool.selectionbrush', 
+            name: 'Selection Brush', 
+            core: null, 
+            hasMoved: false,
+            touchMode: 'new',
+            modePanel: null,
+
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = 'Selection Brush (Shift to add, Alt to subtract)';
+                button.innerHTML = `<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M13.235 4.042a5.5 5.5 0 0 1 7.206 8.356l-1.355 1.356-3.72-3.72 1.355-1.356a3.5 3.5 0 0 0-4.95-4.95L10.414 5.08 6.695 1.36a.5.5 0 0 0-.707 0L1.36 5.988a.5.5 0 0 0 0 .707l3.72 3.72-1.356 1.355a5.5 5.5 0 0 1 8.356 7.206l2.373 2.373a.5.5 0 0 0 .707 0l4.628-4.628a.5.5 0 0 0 0-.707l-2.373-2.373a3.5 3.5 0 0 0-4.95-4.95l-1.355 1.355 3.72-3.72 1.355-1.355z" fill="currentColor" stroke="none" /><path stroke-linecap="round" stroke-linejoin="round" d="M12.001 2.5a.75.75 0 01.75.75v3.002a.75.75 0 01-1.5 0V3.25a.75.75 0 01.75-.75zM12.001 17.748a.75.75 0 01.75.75v3.002a.75.75 0 01-1.5 0v-3.002a.75.75 0 01.75-.75zM6.023 6.023a.75.75 0 011.06 0l2.122 2.121a.75.75 0 01-1.06 1.06L6.023 7.084a.75.75 0 010-1.06zm10.91 10.91a.75.75 0 011.06 0l2.122 2.121a.75.75 0 01-1.06 1.06l-2.121-2.122a.75.75 0 010-1.06zM2.5 12.001a.75.75 0 01.75-.75h3.002a.75.75 0 010 1.5H3.25a.75.75 0 01-.75-.75zm14.752 0a.75.75 0 01.75-.75h3.002a.75.75 0 010 1.5h-3.002a.75.75 0 01-.75-.75zM6.023 17.978a.75.75 0 010-1.06l2.121-2.122a.75.75 0 011.06 1.06l-2.122 2.121a.75.75 0 01-1.06 0zm13.032-11.954a.75.75 0 010-1.06l-2.121-2.122a.75.75 0 01-1.06 1.06l2.122 2.121a.75.75 0 011.06 0z"/></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+
+                const panel = document.createElement('div');
+                panel.className = 'selection-brush-modes';
+                panel.innerHTML = `
+                    <button data-mode="new" class="active" title="New Selection">New</button>
+                    <button data-mode="add" title="Add to Selection">+</button>
+                    <button data-mode="subtract" title="Subtract from Selection">-</button>
+                `;
+                document.getElementById('canvas-area').appendChild(panel);
+                this.modePanel = panel;
+                this.modePanel.style.display = 'none';
+
+                this.modePanel.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        const newMode = e.target.dataset.mode;
+                        this.touchMode = newMode;
+                        this.modePanel.querySelectorAll('button').forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.mode === newMode);
+                        });
+                    }
+                });
+            },
+            
+            onActiveToolChange(toolId) {
+                const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                if (toolId === this.id && isTouchDevice) {
+                    this.modePanel.style.display = 'flex';
+                } else {
+                    this.modePanel.style.display = 'none';
+                }
+            },
+
+            handleEvent(event, rect, ctx, coords) {
+                let isSubtract = event.altKey;
+                let isAdditive = event.shiftKey;
+                const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+                if (isTouchDevice) {
+                    isSubtract = (this.touchMode === 'subtract');
+                    isAdditive = (this.touchMode === 'add');
+                }
+
+                switch (event.type) {
+                    case 'mousedown': case 'touchstart':
+                        if (!isAdditive && !isSubtract) {
+                            this.core.clearSelection();
+                        }
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        this.draw(coords.x, coords.y, isSubtract);
+                        break;
+                    case 'mousemove': case 'touchmove':
+                        if (this.core.isPainting) {
+                            this.draw(coords.x, coords.y, isSubtract);
+                        }
+                        break;
+                    case 'mouseup': case 'touchend':
+                        if (this.core.isPainting) {
+                            this.core.isPainting = false;
+                            this.core.finalizeSelection();
+                            if (this.core.getState('selectionSourceLayerIndex') !== -1) {
+                                this.core.mergeSelectionLayer();
+                            }
+                            this.core.promoteToSelectionLayer();
+                        }
+                        break;
+                    case 'mouseout':
+                        if (this.core.isPainting) {
+                           this.core.isPainting = false;
+                           this.core.finalizeSelection();
+                           if (this.core.getState('selectionSourceLayerIndex') !== -1) {
+                               this.core.mergeSelectionLayer();
+                           }
+                           this.core.promoteToSelectionLayer();
+                        }
+                        break;
+                }
+            },
+            draw(x, y, isSubtract) {
+                const ctx = this.core.selectionMaskCtx;
+                ctx.save();
+                ctx.fillStyle = '#FFF';
+                ctx.globalCompositeOperation = isSubtract ? 'destination-out' : 'source-over';
+                
+                const size = this.core.getState('brushSize');
+                ctx.beginPath();
+                ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                const dist = Math.hypot(x - this.core.lastPos.x, y - this.core.lastPos.y);
+                const angle = Math.atan2(y - this.core.lastPos.y, x - this.core.lastPos.x);
+
+                for (let i = 0; i < dist; i++) {
+                    const px = this.core.lastPos.x + Math.cos(angle) * i;
+                    const py = this.core.lastPos.y + Math.sin(angle) * i;
+                    ctx.beginPath();
+                    ctx.arc(px, py, size / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+                this.core.lastPos = { x, y };
+                this.core.drawSelectionOverlay();
+            }
+        };
+        const MoveToolModule = {
+            id: 'modart.tool.move',
+            name: 'Move',
+            core: null,
+            isMoving: false,
+            startPos: { x: 0, y: 0 },
+            originalRect: null, 
+        
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+            },
+        
+            handleEvent(event, rect, ctx, coords) {
+                const canvasArea = document.getElementById('canvas-area');
+                if (!this.isMoving && this.core.getState('hasSelection')) {
+                    canvasArea.style.cursor = 'move';
+                } else if (this.core.activeToolId === this.id) {
+                    canvasArea.style.cursor = 'crosshair';
+                }
+        
+                switch (event.type) {
+                    case 'mousedown':
+                    case 'touchstart':
+                        if (this.core.getState('hasSelection')) {
+                            this.isMoving = true;
+                            this.startPos = coords;
+                            this.originalRect = { ...this.core.globalState.selectionRect }; 
+        
+                            const context = this.core.activeCanvasContext;
+                            const selectionLayer = this.core.getSelectionLayer(context);
+        
+                            const moveCanvas = document.createElement('canvas');
+                            moveCanvas.width = selectionLayer.canvas.width;
+                            moveCanvas.height = selectionLayer.canvas.height;
+                            moveCanvas.getContext('2d').drawImage(selectionLayer.canvas, 0, 0);
+        
+                            this.core.setState('movingData', {
+                                drawable: moveCanvas,
+                                x: 0,
+                                y: 0,
+                                originalX: 0,
+                                originalY: 0
+                            });
+        
+                            selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                            this.core.clearSelectionOverlay();
+                            this.core.requestFullRedraw();
+                        }
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.isMoving) {
+                            const movingData = this.core.getState('movingData');
+                            const canvas = this.core.getCanvas();
+        
+                            let dx = coords.x - this.startPos.x;
+                            let dy = coords.y - this.startPos.y;
+        
+                            // Clamp dx
+                            if (this.originalRect.x + dx < 0) {
+                                dx = -this.originalRect.x;
+                            }
+                            if (this.originalRect.x + this.originalRect.w + dx > canvas.width) {
+                                dx = canvas.width - (this.originalRect.x + this.originalRect.w);
+                            }
+        
+                            // Clamp dy
+                            if (this.originalRect.y + dy < 0) {
+                                dy = -this.originalRect.y;
+                            }
+                            if (this.originalRect.y + this.originalRect.h + dy > canvas.height) {
+                                dy = canvas.height - (this.originalRect.y + this.originalRect.h);
+                            }
+        
+                            movingData.x = movingData.originalX + dx;
+                            movingData.y = movingData.originalY + dy;
+                            this.core.requestFullRedraw();
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                    case 'mouseout':
+                        if (this.isMoving) {
+                            const movingData = this.core.getState('movingData');
+        
+                            const context = this.core.activeCanvasContext;
+                            const selectionLayer = this.core.getSelectionLayer(context);
+        
+                            selectionLayer.ctx.drawImage(movingData.drawable, movingData.x, movingData.y);
+        
+                            const dx = movingData.x - movingData.originalX;
+                            const dy = movingData.y - movingData.originalY;
+        
+                            this.core.updateSelectionMaskPosition(dx, dy);
+                            this.core.setState('movingData', null);
+                            this.core.finalizeSelection();
+        
+                            this.isMoving = false;
+                            this.originalRect = null;
+                        }
+                        break;
+                }
+            }
+        };
+        const ScaleToolModule = {
+            id: 'modart.tool.scale',
+            name: 'Scale',
+            core: null,
+            isScaling: false,
+            isDragPending: false,
+            dragThreshold: 5,
+            startPos: { x: 0, y: 0 },
+            originalRect: null,
+            centerX: 0,
+            centerY: 0,
+            startDist: 1,
+            startAngle: 0,
+            originalSelectionLayerCanvas: null,
+            originalMaskCanvas: null,
+
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25V3m0 5.25h5.25M3 15.75V21m0-5.25h5.25m9-9.75V3m0 5.25h-5.25m9 3.75V21m0-5.25h-5.25" /></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+            },
+
+            handleEvent(event, rect, ctx, coords) {
+                const canvasArea = document.getElementById('canvas-area');
+                if (!this.isScaling && this.isDragPending === false && this.core.getState('hasSelection')) {
+                    canvasArea.style.cursor = 'nwse-resize';
+                } else if (this.core.activeToolId === this.id) {
+                    canvasArea.style.cursor = 'crosshair';
+                }
+            
+                switch (event.type) {
+                    case 'mousedown':
+                    case 'touchstart':
+                        if (this.core.getState('hasSelection')) {
+                            this.isDragPending = true;
+                            this.isScaling = false;
+                            this.startPos = coords;
+                            this.originalRect = { ...this.core.globalState.selectionRect };
+                            this.centerX = this.originalRect.x + this.originalRect.w / 2;
+                            this.centerY = this.originalRect.y + this.originalRect.h / 2;
+                        }
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.isDragPending) {
+                            const dist = Math.hypot(coords.x - this.startPos.x, coords.y - this.startPos.y);
+                            if (dist > this.dragThreshold) {
+                                this.isDragPending = false;
+                                this.isScaling = true;
+            
+                                const startDx = this.startPos.x - this.centerX;
+                                const startDy = this.startPos.y - this.centerY;
+                                this.startDist = Math.hypot(startDx, startDy);
+                                this.startAngle = Math.atan2(startDy, startDx);
+                                if (this.startDist === 0) this.startDist = 1;
+            
+                                const context = this.core.activeCanvasContext;
+                                const selectionLayer = this.core.getSelectionLayer(context);
+                                this.originalSelectionLayerCanvas = document.createElement('canvas');
+                                this.originalSelectionLayerCanvas.width = selectionLayer.canvas.width;
+                                this.originalSelectionLayerCanvas.height = selectionLayer.canvas.height;
+                                this.originalSelectionLayerCanvas.getContext('2d').drawImage(selectionLayer.canvas, 0, 0);
+            
+                                this.originalMaskCanvas = document.createElement('canvas');
+                                this.originalMaskCanvas.width = this.core.selectionMaskCanvas.width;
+                                this.originalMaskCanvas.height = this.core.selectionMaskCanvas.height;
+                                this.originalMaskCanvas.getContext('2d').drawImage(this.core.selectionMaskCanvas, 0, 0);
+            
+                                selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                            }
+                        }
+            
+                        if (this.isScaling) {
+                            const dx = coords.x - this.centerX;
+                            const dy = coords.y - this.centerY;
+                            const currentDist = Math.hypot(dx, dy);
+                            const currentAngle = Math.atan2(dy, dx);
+            
+                            const scaleFactor = currentDist / this.startDist;
+                            const rotationAngle = currentAngle - this.startAngle;
+            
+                            // --- BOUNDS CHECK & EXPANSION START ---
+                            const canvas = this.core.getCanvas();
+                            const w = this.originalRect.w;
+                            const h = this.originalRect.h;
+                            const x = this.originalRect.x;
+                            const y = this.originalRect.y;
+            
+                            const corners = [{ x: x, y: y }, { x: x + w, y: y }, { x: x + w, y: y + h }, { x: x, y: y + h }];
+            
+                            const getTransformedBoundingBox = (sf, ra) => {
+                                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                                corners.forEach(corner => {
+                                    let relX = corner.x - this.centerX;
+                                    let relY = corner.y - this.centerY;
+            
+                                    relX *= sf;
+                                    relY *= sf;
+            
+                                    const rotX = relX * Math.cos(ra) - relY * Math.sin(ra);
+                                    const rotY = relX * Math.sin(ra) + relY * Math.cos(ra);
+            
+                                    const finalX = rotX + this.centerX;
+                                    const finalY = rotY + this.centerY;
+            
+                                    minX = Math.min(minX, finalX);
+                                    minY = Math.min(minY, finalY);
+                                    maxX = Math.max(maxX, finalX);
+                                    maxY = Math.max(maxY, finalY);
+                                });
+                                return { minX, minY, maxX, maxY };
+                            };
+            
+                            const bbox = getTransformedBoundingBox(scaleFactor, rotationAngle);
+                            
+                            let needsExpansion = bbox.minX < 0 || bbox.minY < 0 || bbox.maxX > canvas.width || bbox.maxY > canvas.height;
+
+                            if (needsExpansion) {
+                                const padding = 20; // Add some padding to avoid repeated resizing
+                                const offsetX = Math.max(0, -Math.floor(bbox.minX) + padding);
+                                const offsetY = Math.max(0, -Math.floor(bbox.minY) + padding);
+                                
+                                let newWidth = canvas.width;
+                                let newHeight = canvas.height;
+
+                                if (offsetX > 0) newWidth += offsetX;
+                                if (offsetY > 0) newHeight += offsetY;
+
+                                if (bbox.maxX > newWidth - padding) {
+                                    newWidth = Math.ceil(bbox.maxX) + padding;
+                                }
+                                if (bbox.maxY > newHeight - padding) {
+                                    newHeight = Math.ceil(bbox.maxY) + padding;
+                                }
+
+                                // Expand the core canvas and all its layers
+                                this.core.expandCanvas(newWidth, newHeight, offsetX, offsetY);
+
+                                // Update the tool's internal state to reflect the new coordinate system
+                                this.centerX += offsetX;
+                                this.centerY += offsetY;
+                                this.originalRect.x += offsetX;
+                                this.originalRect.y += offsetY;
+
+                                // Update the 'original' canvases that the transform is based on
+                                const tempOriginalLayer = document.createElement('canvas');
+                                tempOriginalLayer.width = newWidth;
+                                tempOriginalLayer.height = newHeight;
+                                tempOriginalLayer.getContext('2d').drawImage(this.originalSelectionLayerCanvas, offsetX, offsetY);
+                                this.originalSelectionLayerCanvas = tempOriginalLayer;
+
+                                const tempOriginalMask = document.createElement('canvas');
+                                tempOriginalMask.width = newWidth;
+                                tempOriginalMask.height = newHeight;
+                                tempOriginalMask.getContext('2d').drawImage(this.originalMaskCanvas, offsetX, offsetY);
+                                this.originalMaskCanvas = tempOriginalMask;
+                            }
+                            // --- BOUNDS CHECK & EXPANSION END ---
+            
+                            const context = this.core.activeCanvasContext;
+                            const selectionLayer = this.core.getSelectionLayer(context);
+                            const selectionLayerCtx = selectionLayer.ctx;
+                            const selectionMaskCtx = this.core.selectionMaskCtx;
+            
+                            selectionLayerCtx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                            selectionLayerCtx.save();
+                            selectionLayerCtx.translate(this.centerX, this.centerY);
+                            selectionLayerCtx.rotate(rotationAngle);
+                            selectionLayerCtx.scale(scaleFactor, scaleFactor);
+                            selectionLayerCtx.translate(-this.centerX, -this.centerY);
+                            selectionLayerCtx.drawImage(this.originalSelectionLayerCanvas, 0, 0);
+                            selectionLayerCtx.restore();
+            
+                            selectionMaskCtx.clearRect(0, 0, this.core.selectionMaskCanvas.width, this.core.selectionMaskCanvas.height);
+                            selectionMaskCtx.save();
+                            selectionMaskCtx.translate(this.centerX, this.centerY);
+                            selectionMaskCtx.rotate(rotationAngle);
+                            selectionMaskCtx.scale(scaleFactor, scaleFactor);
+                            selectionMaskCtx.translate(-this.centerX, -this.centerY);
+                            selectionMaskCtx.drawImage(this.originalMaskCanvas, 0, 0);
+                            selectionMaskCtx.restore();
+            
+                            this.core.drawSelectionOverlay();
+                            this.core.requestFullRedraw();
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                    case 'mouseout':
+                        if (this.isDragPending) {
+                            this.isDragPending = false;
+                            return;
+                        }
+                        if (this.isScaling) {
+                            this.isScaling = false;
+                            this.core.finalizeSelection();
+                            this.core.saveStateForUndo();
+                            this.originalSelectionLayerCanvas = null;
+                            this.originalMaskCanvas = null;
+                        }
+                        break;
+                }
+            }
+        };
+        const RotateToolModule = {
+            id: 'modart.tool.rotate',
+            name: 'Rotate',
+            core: null,
+            isRotating: false,
+            isDragPending: false,
+            dragThreshold: 5,
+            startPos: { x: 0, y: 0 },
+            originalRect: null,
+            centerX: 0,
+            centerY: 0,
+            startAngle: 0,
+            originalSelectionLayerCanvas: null,
+            originalMaskCanvas: null,
+
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = this.name;
+                button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991-2.693L7.985 5.356m0 0v4.992m0 0h4.992m0 0l3.181-3.183a8.25 8.25 0 0111.667 0l3.181 3.183" /></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                toolbar.appendChild(button);
+            },
+
+            handleEvent(event, rect, ctx, coords) {
+                const canvasArea = document.getElementById('canvas-area');
+                if (!this.isRotating && this.isDragPending === false && this.core.getState('hasSelection')) {
+                    canvasArea.style.cursor = 'grab';
+                } else if (this.isRotating) {
+                    canvasArea.style.cursor = 'grabbing';
+                } else if (this.core.activeToolId === this.id) {
+                    canvasArea.style.cursor = 'crosshair';
+                }
+            
+                switch (event.type) {
+                    case 'mousedown':
+                    case 'touchstart':
+                        if (this.core.getState('hasSelection')) {
+                            this.isDragPending = true;
+                            this.isRotating = false;
+                            this.startPos = coords;
+                            this.originalRect = { ...this.core.globalState.selectionRect };
+                            this.centerX = this.originalRect.x + this.originalRect.w / 2;
+                            this.centerY = this.originalRect.y + this.originalRect.h / 2;
+                        }
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.isDragPending) {
+                            const dist = Math.hypot(coords.x - this.startPos.x, coords.y - this.startPos.y);
+                            if (dist > this.dragThreshold) {
+                                this.isDragPending = false;
+                                this.isRotating = true;
+            
+                                const startDx = this.startPos.x - this.centerX;
+                                const startDy = this.startPos.y - this.centerY;
+                                this.startAngle = Math.atan2(startDy, startDx);
+            
+                                const context = this.core.activeCanvasContext;
+                                const selectionLayer = this.core.getSelectionLayer(context);
+                                this.originalSelectionLayerCanvas = document.createElement('canvas');
+                                this.originalSelectionLayerCanvas.width = selectionLayer.canvas.width;
+                                this.originalSelectionLayerCanvas.height = selectionLayer.canvas.height;
+                                this.originalSelectionLayerCanvas.getContext('2d').drawImage(selectionLayer.canvas, 0, 0);
+            
+                                this.originalMaskCanvas = document.createElement('canvas');
+                                this.originalMaskCanvas.width = this.core.selectionMaskCanvas.width;
+                                this.originalMaskCanvas.height = this.core.selectionMaskCanvas.height;
+                                this.originalMaskCanvas.getContext('2d').drawImage(this.core.selectionMaskCanvas, 0, 0);
+            
+                                selectionLayer.ctx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                            }
+                        }
+            
+                        if (this.isRotating) {
+                            const dx = coords.x - this.centerX;
+                            const dy = coords.y - this.centerY;
+                            const currentAngle = Math.atan2(dy, dx);
+                            const rotationAngle = currentAngle - this.startAngle;
+            
+                            // --- BOUNDS CHECK & EXPANSION START ---
+                            const canvas = this.core.getCanvas();
+                            const w = this.originalRect.w;
+                            const h = this.originalRect.h;
+                            const x = this.originalRect.x;
+                            const y = this.originalRect.y;
+            
+                            const corners = [{ x: x, y: y }, { x: x + w, y: y }, { x: x + w, y: y + h }, { x: x, y: y + h }];
+            
+                            const getTransformedBoundingBox = (sf, ra) => {
+                                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                                corners.forEach(corner => {
+                                    let relX = corner.x - this.centerX;
+                                    let relY = corner.y - this.centerY;
+            
+                                    relX *= sf;
+                                    relY *= sf;
+            
+                                    const rotX = relX * Math.cos(ra) - relY * Math.sin(ra);
+                                    const rotY = relX * Math.sin(ra) + relY * Math.cos(ra);
+            
+                                    const finalX = rotX + this.centerX;
+                                    const finalY = rotY + this.centerY;
+            
+                                    minX = Math.min(minX, finalX);
+                                    minY = Math.min(minY, finalY);
+                                    maxX = Math.max(maxX, finalX);
+                                    maxY = Math.max(maxY, finalY);
+                                });
+                                return { minX, minY, maxX, maxY };
+                            };
+            
+                            const bbox = getTransformedBoundingBox(1, rotationAngle);
+                            
+                            let needsExpansion = bbox.minX < 0 || bbox.minY < 0 || bbox.maxX > canvas.width || bbox.maxY > canvas.height;
+
+                            if (needsExpansion) {
+                                const padding = 20; // Add some padding to avoid repeated resizing
+                                const offsetX = Math.max(0, -Math.floor(bbox.minX) + padding);
+                                const offsetY = Math.max(0, -Math.floor(bbox.minY) + padding);
+                                
+                                let newWidth = canvas.width;
+                                let newHeight = canvas.height;
+
+                                if (offsetX > 0) newWidth += offsetX;
+                                if (offsetY > 0) newHeight += offsetY;
+
+                                if (bbox.maxX > newWidth - padding) {
+                                    newWidth = Math.ceil(bbox.maxX) + padding;
+                                }
+                                if (bbox.maxY > newHeight - padding) {
+                                    newHeight = Math.ceil(bbox.maxY) + padding;
+                                }
+
+                                // Expand the core canvas and all its layers
+                                this.core.expandCanvas(newWidth, newHeight, offsetX, offsetY);
+
+                                // Update the tool's internal state to reflect the new coordinate system
+                                this.centerX += offsetX;
+                                this.centerY += offsetY;
+                                this.originalRect.x += offsetX;
+                                this.originalRect.y += offsetY;
+
+                                // Update the 'original' canvases that the transform is based on
+                                const tempOriginalLayer = document.createElement('canvas');
+                                tempOriginalLayer.width = newWidth;
+                                tempOriginalLayer.height = newHeight;
+                                tempOriginalLayer.getContext('2d').drawImage(this.originalSelectionLayerCanvas, offsetX, offsetY);
+                                this.originalSelectionLayerCanvas = tempOriginalLayer;
+
+                                const tempOriginalMask = document.createElement('canvas');
+                                tempOriginalMask.width = newWidth;
+                                tempOriginalMask.height = newHeight;
+                                tempOriginalMask.getContext('2d').drawImage(this.originalMaskCanvas, offsetX, offsetY);
+                                this.originalMaskCanvas = tempOriginalMask;
+                            }
+                            // --- BOUNDS CHECK & EXPANSION END ---
+            
+                            const context = this.core.activeCanvasContext;
+                            const selectionLayer = this.core.getSelectionLayer(context);
+                            const selectionLayerCtx = selectionLayer.ctx;
+                            const selectionMaskCtx = this.core.selectionMaskCtx;
+            
+                            selectionLayerCtx.clearRect(0, 0, selectionLayer.canvas.width, selectionLayer.canvas.height);
+                            selectionLayerCtx.save();
+                            selectionLayerCtx.translate(this.centerX, this.centerY);
+                            selectionLayerCtx.rotate(rotationAngle);
+                            selectionLayerCtx.translate(-this.centerX, -this.centerY);
+                            selectionLayerCtx.drawImage(this.originalSelectionLayerCanvas, 0, 0);
+                            selectionLayerCtx.restore();
+            
+                            selectionMaskCtx.clearRect(0, 0, this.core.selectionMaskCanvas.width, this.core.selectionMaskCanvas.height);
+                            selectionMaskCtx.save();
+                            selectionMaskCtx.translate(this.centerX, this.centerY);
+                            selectionMaskCtx.rotate(rotationAngle);
+                            selectionMaskCtx.translate(-this.centerX, -this.centerY);
+                            selectionMaskCtx.drawImage(this.originalMaskCanvas, 0, 0);
+                            selectionMaskCtx.restore();
+            
+                            this.core.drawSelectionOverlay();
+                            this.core.requestFullRedraw();
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                    case 'mouseout':
+                        if (this.isDragPending) {
+                            this.isDragPending = false;
+                            return;
+                        }
+                        if (this.isRotating) {
+                            this.isRotating = false;
+            
+                            this.core.finalizeSelection();
+                            this.core.saveStateForUndo();
+            
+                            this.originalSelectionLayerCanvas = null;
+                            this.originalMaskCanvas = null;
+                        }
+                        break;
+                }
+            }
+        };
+        const OmniBrushSettingsModule = {
+            id: 'modart.dynamic.brush.settings', name: 'Omni Brush Settings', core: null, panel: null,
+            init(core) {
+                this.core = core;
+                const sidebar = document.getElementById('sidebar-container');
+                sidebar.insertAdjacentHTML('beforeend', this.getUIPanel());
+                this.panel = document.getElementById('dynamic-brush-panel');
+                this.panel.style.display = 'none';
+                document.getElementById('dyn-brush-color-mode').addEventListener('click', (e) => {
+                    const currentMode = this.core.getState('OmniBrushColorMode');
+                    const newMode = currentMode === 'original' ? 'colorize' : 'original';
+                    this.core.setState('OmniBrushColorMode', newMode);
+                    e.target.textContent = `Mode: ${newMode === 'original' ? 'Original Colors' : 'Colorize'}`;
+                });
+            },
+            getUIPanel() { return `<div class="panel" id="dynamic-brush-panel"><div class="panel-header">Omni Brush</div><canvas id="dynamic-brush-preview"></canvas><button id="dyn-brush-color-mode">Mode: Original Colors</button></div>`; },
+            onActiveToolChange(toolId) { this.panel.style.display = toolId === 'modart.tool.OmniBrush' ? 'block' : 'none'; },
+            onOmniBrushUpdate(brushCanvas) {
+                const preview = document.getElementById('dynamic-brush-preview');
+                if (preview) {
+                    const pCtx = preview.getContext('2d');
+                    preview.width = this.panel.clientWidth - 2;
+                    preview.height = 100;
+                    pCtx.clearRect(0, 0, preview.width, preview.height);
+                    pCtx.drawImage(brushCanvas, 0, 0, preview.width, preview.height);
+                }
+            }
+        };
+        const OmniBrushToolModule = {
+            id: 'modart.tool.OmniBrush', name: 'Omni Brush', core: null, tempCanvas: null, tempCtx: null, hasMoved: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = 'Omni Brush (Right-click to edit)';
+                button.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-2 15V7h4v10h-4z"/></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                button.addEventListener('contextmenu', (e) => { e.preventDefault(); this.core.toggleActiveCanvas(); });
+                toolbar.appendChild(button);
+                this.tempCanvas = document.createElement('canvas');
+                this.tempCtx = this.tempCanvas.getContext('2d');
+                this.hasMoved = false;
+            },
+            handleEvent(event, rect, ctx, coords) {
+                const currentContext = this.core.activeCanvasContext;
+                if (currentContext !== 'main') return;
+                
+                switch (event.type) {
+                    case 'mousedown':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        this.draw(coords.x, coords.y, ctx);
+                        break;
+                    case 'touchstart':
+                        this.hasMoved = false;
+                        this.core.isPainting = true;
+                        this.core.lastPos = coords;
+                        break;
+                    case 'mousemove':
+                    case 'touchmove':
+                        if (this.core.isPainting) {
+                            this.hasMoved = true;
+                            this.draw(coords.x, coords.y, ctx);
+                        }
+                        break;
+                    case 'mouseup':
+                    case 'touchend':
+                        if (this.core.isPainting) {
+                            if (event.type === 'touchend' && !this.hasMoved) {
+                                this.draw(this.core.lastPos.x, this.core.lastPos.y, ctx);
+                            }
+                            this.core.saveStateForUndo(currentContext);
+                            this.core.isPainting = false;
+                        }
+                        break;
+                    case 'mouseout':
+                         if (this.core.isPainting) {
+                            this.core.isPainting = false;
+                         }
+                        break;
+                }
+            },
+            draw(x, y, ctx) {
+                 const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = ctx.canvas.width;
+                tempCanvas.height = ctx.canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                this._performDraw(x, y, tempCtx);
+
+                if (this.core.getState('hasSelection')) {
+                    tempCtx.globalCompositeOperation = 'destination-in';
+                    tempCtx.drawImage(this.core.selectionMaskCanvas, 0, 0);
+                }
+                ctx.drawImage(tempCanvas, 0, 0);
+
+                this.core.lastPos = { x, y };
+                this.core.requestFullRedraw();
+            },
+             _performDraw(x, y, ctx) {
+                if (this.core.activeCanvasContext !== 'main') return;
+                const brushSource = this.core.OmniBrushCanvas;
+                const mode = this.core.getState('OmniBrushColorMode');
+                const size = this.core.getState('brushSize');
+                let finalBrush = brushSource;
+                if (mode === 'colorize') {
+                    const color = this.core.getState('color');
+                    this.tempCanvas.width = brushSource.width; this.tempCanvas.height = brushSource.height;
+                    this.tempCtx.clearRect(0, 0, brushSource.width, brushSource.height);
+                    this.tempCtx.drawImage(brushSource, 0, 0);
+                    this.tempCtx.globalCompositeOperation = 'source-in'; this.tempCtx.fillStyle = color;
+                    this.tempCtx.fillRect(0, 0, brushSource.width, brushSource.height);
+                    this.tempCtx.globalCompositeOperation = 'source-over';
+                    finalBrush = this.tempCanvas;
+                }
+                ctx.globalAlpha = this.core.getState('opacity');
+                const dist = Math.hypot(x - this.core.lastPos.x, y - this.core.lastPos.y);
+                const angle = Math.atan2(y - this.core.lastPos.y, x - this.core.lastPos.x);
+                const step = Math.max(1, size / 4);
+
+                for (let i = 0; i < dist; i += step) {
+                    const px = this.core.lastPos.x + Math.cos(angle) * i;
+                    const py = this.core.lastPos.y + Math.sin(angle) * i;
+                    ctx.drawImage(finalBrush, px - size / 2, py - size / 2, size, size);
+                }
+                 ctx.drawImage(finalBrush, x - size / 2, y - size / 2, size, size);
+             }
+        };
+        const FillToolModule = {
+            id: 'modart.tool.fill',
+            name: 'Fill Bucket',
+            core: null,
+            eraseMode: false,
+            init(core) {
+                this.core = core;
+                const toolbar = document.getElementById('toolbar-container');
+                const button = document.createElement('div');
+                button.className = 'tool-button';
+                button.dataset.toolId = this.id;
+                button.title = 'Fill (Right-click to toggle erase)';
+                button.innerHTML = `<svg viewBox="0 0 24 24"><path d="M18,3H6V5.41L12,11.41L18,5.41V3M18,7.83L12,13.83L6,7.83V18H18V7.83Z" /></svg>`;
+                button.addEventListener('click', () => this.core.setActiveTool(this.id));
+                button.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.eraseMode = !this.eraseMode;
+                    button.title = this.eraseMode ? 'Fill Erase (Right-click to toggle fill)' : 'Fill (Right-click to toggle erase)';
+                });
+                toolbar.appendChild(button);
+            },
+
+            handleEvent(event, rect, ctx, coords) {
+                if (event.type === 'mousedown' || event.type === 'touchstart') {
+                    this.floodFill(Math.floor(coords.x), Math.floor(coords.y), ctx);
+                }
+            },
+            
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16),
+                } : null;
+            },
+
+            floodFill(startX, startY, ctx) {
+                const canvas = ctx.canvas;
+                const { width, height } = canvas;
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                const selectionMaskData = this.core.selectionMaskCtx.getImageData(0, 0, width, height).data;
+
+                const startIdx = (startY * width + startX) * 4;
+                if (this.core.getState('hasSelection') && selectionMaskData[startIdx + 3] === 0) {
+                    return; // Clicked outside selection
+                }
+
+                const startR = data[startIdx];
+                const startG = data[startIdx+1];
+                const startB = data[startIdx+2];
+                const startA = data[startIdx+3];
+
+                let fillColorR, fillColorG, fillColorB, fillColorA;
+
+                if (this.eraseMode) {
+                    fillColorR = 0; fillColorG = 0; fillColorB = 0; fillColorA = 0;
+                } else {
+                    const fillColor = this.hexToRgb(this.core.getState('color'));
+                    if(!fillColor) return;
+                    fillColorR = fillColor.r;
+                    fillColorG = fillColor.g;
+                    fillColorB = fillColor.b;
+                    fillColorA = 255 * this.core.getState('opacity');
+                }
+
+                if (startR === fillColorR && startG === fillColorG && startB === fillColorB && startA === fillColorA) {
+                    return;
+                }
+                
+                const pixelStack = [[startX, startY]];
+
+                while (pixelStack.length) {
+                    const [x, y] = pixelStack.pop();
+                    if(x < 0 || x >= width || y < 0 || y >= height) continue;
+                    let currentIdx = (y * width + x) * 4;
+
+                    if (this.core.getState('hasSelection') && selectionMaskData[currentIdx + 3] === 0) {
+                        continue;
+                    }
+
+                    if (data[currentIdx] === startR && data[currentIdx + 1] === startG && data[currentIdx + 2] === startB && data[currentIdx + 3] === startA) {
+                         data[currentIdx] = fillColorR;
+                         data[currentIdx + 1] = fillColorG;
+                         data[currentIdx + 2] = fillColorB;
+                         data[currentIdx + 3] = fillColorA;
+                         
+                         pixelStack.push([x + 1, y]);
+                         pixelStack.push([x - 1, y]);
+                         pixelStack.push([x, y + 1]);
+                         pixelStack.push([x, y - 1]);
+                    }
+                }
+                ctx.putImageData(imageData, 0, 0);
+                this.core.saveStateForUndo();
+                this.requestFullRedraw();
+            }
+        };
+
+        // --- Application Startup ---
+        window.onload = () => {
+            CanvasCore.init();
+            
+            CanvasCore.registerModule(ViewModule);
+            CanvasCore.registerModule(HistoryModule);
+            CanvasCore.registerModule(FileModule);
+            CanvasCore.registerModule(LayersPanelModule);
+            CanvasCore.registerModule(BrushManagerModule); 
+            CanvasCore.registerModule(OmniBrushSettingsModule);
+            CanvasCore.registerModule(BrushSettingsModule);
+            CanvasCore.registerModule(ColorPickerModule);
+            CanvasCore.registerModule(ActionsModule); 
+            CanvasCore.registerModule(CanvasSettingsModule); 
+            
+            CanvasCore.registerModule(BrushToolModule);
+            CanvasCore.registerModule(CustomBrushToolModule); 
+            CanvasCore.registerModule(StampToolModule); 
+            CanvasCore.registerModule(OmniBrushToolModule);
+            CanvasCore.registerModule(FillToolModule);
+            CanvasCore.registerModule(EraserToolModule);
+            CanvasCore.registerModule(SelectionToolModule);
+            CanvasCore.registerModule(SelectionBrushToolModule);
+            CanvasCore.registerModule(MoveToolModule); 
+            CanvasCore.registerModule(ScaleToolModule);
+            CanvasCore.registerModule(RotateToolModule);
+            
+            CanvasCore.setActiveTool('modart.tool.brush');
+            document.getElementById('panels-toggle-btn').addEventListener('click', () => {
+                document.getElementById('sidebar-container').classList.toggle('open');
+            });
+        };
+    </script>
+</body>
+</html>
+
