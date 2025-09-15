@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohdarte Freaq</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111827; color: #e5e7eb; }
+        @import url('https://rsms.me/inter/inter.css');
+        .control-grid { display: grid; grid-template-columns: 1fr 2.5fr 0.8fr; align-items: center; gap: 0.5rem; }
+        .control-grid label { text-align: right; font-size: 0.8rem; color: #9ca3af; }
+        .control-grid output { font-family: monospace; font-size: 0.8rem; background-color: #374151; padding: 2px 6px; border-radius: 4px; color: #f9fafb; }
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: #374151; border-radius: 5px; outline: none; transition: opacity .2s; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: 2px solid #1f2937;}
+        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; cursor: pointer; border: 2px solid #1f2937; }
+        select, button, input[type="file"]::file-selector-button { background-color: #374151; border: 1px solid #4b5563; border-radius: 0.375rem; padding: 0.5rem; font-size: 0.875rem; color: #e5e7eb; cursor: pointer; transition: background-color 0.2s; }
+        select:hover, button:hover, input[type="file"]::file-selector-button:hover { background-color: #4b5563; }
+        button:disabled { background-color: #4b5563; color: #9ca3af; cursor: not-allowed; }
+        .card { background-color: #1f2937; border-radius: 0.5rem; padding: 1.25rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        h3 { font-weight: 600; color: #d1d5db; border-bottom: 1px solid #374151; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-5xl mx-auto space-y-4">
+        <div class="card">
+            <h1 class="text-2xl font-bold text-center mb-2 text-white">Mohdarte Freaq</h1>
+            <p class="text-center text-gray-400 mb-6">Craft unique sounds by manipulating their core properties.</p>
+            
+            <div id="timeline-container" class="w-full h-2 bg-gray-700 rounded-full mb-6 cursor-pointer">
+                <div id="timeline-progress" class="h-2 bg-blue-500 rounded-full w-0"></div>
+            </div>
+            <div class="flex justify-center items-center gap-4">
+                <button id="playBtn" class="px-6 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white">Play</button>
+                <button id="pauseBtn" class="px-6 py-2 rounded-lg font-semibold bg-gray-600 hover:bg-gray-700 text-white">Pause</button>
+                <button id="stopBtn" class="px-6 py-2 rounded-lg font-semibold bg-red-600 hover:bg-red-700 text-white">Stop</button>
+                 <div class="flex items-center space-x-2">
+                    <label for="loopToggle" class="text-sm text-gray-300">Loop:</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="loopToggle" class="sr-only peer">
+                      <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Oscillators & Mixer -->
+            <div class="card lg:col-span-1">
+                <h3>Oscillators & Mixer</h3>
+                <div class="space-y-5">
+                    <!-- OSC 1 -->
+                    <div class="control-grid">
+                        <label for="waveform1">OSC 1</label>
+                        <select id="waveform1" class="w-full text-sm py-1">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                            <option value="triangle">Triangle</option>
+                        </select>
+                        <div></div>
+                    </div>
+                    <div class="control-grid">
+                        <label for="frequency">Freq</label>
+                        <input id="frequency" type="range" min="20" max="2000" step="1" value="440">
+                        <output for="frequency">440 Hz</output>
+                    </div>
+                     <!-- OSC 2 -->
+                    <div class="control-grid">
+                        <label for="waveform2">OSC 2</label>
+                        <select id="waveform2" class="w-full text-sm py-1">
+                            <option value="sine">Sine</option>
+                            <option value="square" selected>Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                            <option value="triangle">Triangle</option>
+                        </select>
+                        <div></div>
+                    </div>
+                    <div class="control-grid">
+                        <label for="detune2">Detune</label>
+                        <input id="detune2" type="range" min="-100" max="100" step="1" value="10">
+                        <output for="detune2">10 c</output>
+                    </div>
+                    <!-- Noise -->
+                     <div class="control-grid">
+                        <label for="noiseType">Noise</label>
+                        <select id="noiseType" class="w-full text-sm py-1">
+                            <option value="white">White</option>
+                            <option value="pink">Pink</option>
+                            <option value="brown">Brown</option>
+                        </select>
+                        <div></div>
+                    </div>
+                    <!-- Mixer -->
+                    <div class="control-grid">
+                        <label for="mix1">Mix 1</label>
+                        <input id="mix1" type="range" min="0" max="1" step="0.01" value="0.5">
+                        <output for="mix1">0.50</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="mix2">Mix 2</label>
+                        <input id="mix2" type="range" min="0" max="1" step="0.01" value="0.5">
+                        <output for="mix2">0.50</output>
+                    </div>
+                     <div class="control-grid">
+                        <label for="mixNoise">Mix N</label>
+                        <input id="mixNoise" type="range" min="0" max="1" step="0.01" value="0.0">
+                        <output for="mixNoise">0.00</output>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter & ADSR -->
+            <div class="card lg:col-span-1">
+                <h3>Filter & ADSR</h3>
+                <div class="space-y-5">
+                    <div class="control-grid">
+                        <label for="filterType">Filter</label>
+                        <select id="filterType" class="w-full text-sm py-1">
+                            <option value="lowpass">Low-pass</option>
+                            <option value="highpass">High-pass</option>
+                            <option value="bandpass">Band-pass</option>
+                        </select>
+                        <div></div>
+                    </div>
+                    <div class="control-grid">
+                        <label for="filterCutoff">Cutoff</label>
+                        <input id="filterCutoff" type="range" min="20" max="20000" step="1" value="15000">
+                        <output for="filterCutoff">15k Hz</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="filterQ">Res (Q)</label>
+                        <input id="filterQ" type="range" min="0.0001" max="20" step="0.01" value="1">
+                        <output for="filterQ">1.00</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="attack">Attack</label>
+                        <input id="attack" type="range" min="0.001" max="2" step="0.001" value="0.01">
+                        <output for="attack">0.01 s</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="decay">Decay</label>
+                        <input id="decay" type="range" min="0.001" max="2" step="0.001" value="0.1">
+                        <output for="decay">0.10 s</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="sustain">Sustain</label>
+                        <input id="sustain" type="range" min="0.001" max="1" step="0.001" value="0.8">
+                        <output for="sustain">0.80</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="release">Release</label>
+                        <input id="release" type="range" min="0.001" max="5" step="0.001" value="0.2">
+                        <output for="release">0.20 s</output>
+                    </div>
+                    <div class="control-grid">
+                        <label for="duration">Note</label>
+                        <input id="duration" type="range" min="0.01" max="10" step="0.01" value="0.5">
+                        <output for="duration">0.50 s</output>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LFO & Effects -->
+            <div class="card lg:col-span-1">
+                <h3>LFO & Effects</h3>
+                 <div class="space-y-4">
+                    <!-- LFO Wave -->
+                    <div class="flex flex-col gap-1">
+                        <label for="lfoWave" class="text-sm text-gray-300">LFO</label>
+                        <select id="lfoWave" class="w-full text-sm py-1">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                        </select>
+                    </div>
+                     <!-- LFO Target -->
+                    <div class="flex flex-col gap-1">
+                        <label for="lfoTarget" class="text-sm text-gray-300">Target</label>
+                        <select id="lfoTarget" class="w-full text-sm py-1">
+                            <option value="none">None</option>
+                            <option value="pitch">Pitch</option>
+                            <option value="volume">Volume</option>
+                            <option value="filter">Filter</option>
+                        </select>
+                    </div>
+                    <!-- LFO Rate -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-center w-full">
+                            <label for="lfoRate" class="text-sm text-gray-300">Rate</label>
+                            <output for="lfoRate" class="text-sm font-mono bg-transparent p-0">5.0 Hz</output>
+                        </div>
+                        <input id="lfoRate" type="range" min="0.1" max="30" step="0.1" value="5">
+                    </div>
+                    <!-- LFO Depth -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-center w-full">
+                            <label for="lfoDepth" class="text-sm text-gray-300">Depth</label>
+                            <output for="lfoDepth" class="text-sm font-mono bg-transparent p-0">0</output>
+                        </div>
+                        <input id="lfoDepth" type="range" min="0" max="1000" step="1" value="0">
+                    </div>
+                    <!-- Distortion -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-center w-full">
+                            <label for="distortion" class="text-sm text-gray-300">Distort</label>
+                            <output for="distortion" class="text-sm font-mono bg-transparent p-0">0</output>
+                        </div>
+                        <input id="distortion" type="range" min="0" max="400" step="1" value="0">
+                    </div>
+                    <!-- Delay Time -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-center w-full">
+                            <label for="delayTime" class="text-sm text-gray-300">Dly Time</label>
+                            <output for="delayTime" class="text-sm font-mono bg-transparent p-0">0.00 s</output>
+                        </div>
+                        <input id="delayTime" type="range" min="0" max="2" step="0.01" value="0">
+                    </div>
+                    <!-- Delay Feedback -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-center w-full">
+                            <label for="delayFeedback" class="text-sm text-gray-300">Dly Fbk</label>
+                            <output for="delayFeedback" class="text-sm font-mono bg-transparent p-0">0.00</output>
+                        </div>
+                        <input id="delayFeedback" type="range" min="0" max="0.95" step="0.01" value="0">
+                    </div>
+                     <!-- Delay Mix -->
+                    <div class="flex flex-col gap-1">
+                         <div class="flex justify-between items-center w-full">
+                            <label for="delayMix" class="text-sm text-gray-300">Dly Mix</label>
+                            <output for="delayMix" class="text-sm font-mono bg-transparent p-0">0.00</output>
+                        </div>
+                        <input id="delayMix" type="range" min="0" max="1" step="0.01" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+             <div class="flex flex-wrap justify-center items-center gap-4">
+                <button id="randomizeBtn" class="px-4 py-2 rounded-lg font-semibold bg-purple-600 hover:bg-purple-700 text-white">Randomize</button>
+                <label for="importJsonBtn" class="px-4 py-2 rounded-lg font-semibold bg-gray-600 hover:bg-gray-700 text-white cursor-pointer">Import Config</label>
+                <input type="file" id="importJsonBtn" class="hidden" accept=".json">
+                <button id="exportJsonBtn" class="px-4 py-2 rounded-lg font-semibold bg-gray-600 hover:bg-gray-700 text-white">Export Config</button>
+                <button id="exportWavBtn" class="px-4 py-2 rounded-lg font-semibold bg-green-600 hover:bg-green-700 text-white">Export .WAV</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- DOM Elements ---
+const dom = {};
+document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
+
+// --- Audio Context & State ---
+let audioCtx;
+let nodes = {};
+let isPlaying = false;
+let isPaused = false;
+let startTime = 0;
+let pausedTime = 0;
+let noiseBuffers = {};
+let loopTimeoutId;
+let timelineIntervalId;
+
+// --- Main Setup & Event Listeners ---
+function setupEventListeners() {
+    dom.playBtn.addEventListener('click', playSound);
+    dom.pauseBtn.addEventListener('click', pauseSound);
+    dom.stopBtn.addEventListener('click', stopSound);
+    dom.randomizeBtn.addEventListener('click', randomizeSettings);
+    dom.loopToggle.addEventListener('change', handleLoopToggle);
+    dom.exportJsonBtn.addEventListener('click', exportConfig);
+    dom.exportWavBtn.addEventListener('click', exportWav);
+    dom.importJsonBtn.addEventListener('change', importConfig);
+
+    document.querySelectorAll('input[type="range"], select').forEach(el => {
+        el.addEventListener('input', () => {
+            updateControlValues();
+            if (isPlaying && !isPaused) {
+                updateLiveSound();
+            }
+        });
+    });
+    updateControlValues();
+}
+
+function initAudioContext() {
+    if (!audioCtx || audioCtx.state === 'closed') {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        generateNoiseBuffers();
+    }
+}
+
+function generateNoiseBuffers() {
+    if (!audioCtx) return;
+    const bufferSize = audioCtx.sampleRate * 2;
+    ['white', 'pink', 'brown'].forEach(type => {
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        let lastOut = 0;
+        let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            switch(type) {
+                case 'white': output[i] = white; break;
+                case 'pink':
+                    b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; b3 = 0.86650 * b3 + white * 0.3104856; b4 = 0.55000 * b4 + white * 0.5329522; b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362; output[i] *= 0.11; b6 = white * 0.115926;
+                    break;
+                case 'brown':
+                    lastOut = (lastOut + (0.02 * white)) / 1.02; output[i] = lastOut; output[i] *= 3.5;
+                    break;
+            }
+        }
+        noiseBuffers[type] = buffer;
+    });
+}
+
+// --- Core Audio Logic ---
+function buildAudioGraph(context, config) {
+    const n = {
+        osc1: context.createOscillator(), osc2: context.createOscillator(),
+        noise: context.createBufferSource(),
+        mix1: context.createGain(), mix2: context.createGain(), mixNoise: context.createGain(),
+        filter: context.createBiquadFilter(),
+        adsrGain: context.createGain(),
+        lfo: context.createOscillator(), lfoGain: context.createGain(),
+        distortion: context.createWaveShaper(),
+        delay: context.createDelay(2.0), feedback: context.createGain(),
+        dry: context.createGain(), wet: context.createGain(),
+        masterOut: context.createGain()
+    };
+    
+    n.osc1.type = config.waveform1; n.osc1.frequency.value = parseFloat(config.frequency);
+    n.osc2.type = config.waveform2; n.osc2.frequency.value = parseFloat(config.frequency);
+    n.osc2.detune.value = parseFloat(config.detune2);
+    n.mix1.gain.value = parseFloat(config.mix1);
+    n.mix2.gain.value = parseFloat(config.mix2);
+    n.mixNoise.gain.value = parseFloat(config.mixNoise);
+    n.noise.buffer = (context instanceof OfflineAudioContext) ? createNoiseBuffer(context, config.noiseType, 12) : noiseBuffers[config.noiseType];
+    n.noise.loop = true;
+    n.filter.type = config.filterType; n.filter.frequency.value = parseFloat(config.filterCutoff); n.filter.Q.value = parseFloat(config.filterQ);
+    n.lfo.type = config.lfoWave; n.lfo.frequency.value = parseFloat(config.lfoRate);
+    n.distortion.curve = makeDistortionCurve(parseFloat(config.distortion)); n.distortion.oversample = '4x';
+    n.delay.delayTime.value = parseFloat(config.delayTime);
+    n.feedback.gain.value = parseFloat(config.delayFeedback);
+    n.dry.gain.value = 1.0 - parseFloat(config.delayMix);
+    n.wet.gain.value = parseFloat(config.delayMix);
+    
+    const lfoTarget = config.lfoTarget;
+    const lfoDepth = parseFloat(config.lfoDepth);
+    if (lfoTarget !== 'none') {
+        n.lfo.connect(n.lfoGain);
+        if (lfoTarget === 'pitch') { n.lfoGain.gain.value = lfoDepth; n.lfoGain.connect(n.osc1.detune); n.lfoGain.connect(n.osc2.detune); } 
+        else if (lfoTarget === 'volume') { n.lfoGain.gain.value = lfoDepth / 1000; n.lfoGain.connect(n.adsrGain.gain); } 
+        else if (lfoTarget === 'filter') { n.lfoGain.gain.value = lfoDepth * 10; n.lfoGain.connect(n.filter.frequency); }
+    }
+    
+    n.osc1.connect(n.mix1); n.osc2.connect(n.mix2); n.noise.connect(n.mixNoise);
+    n.mix1.connect(n.filter); n.mix2.connect(n.filter); n.mixNoise.connect(n.filter);
+    n.filter.connect(n.adsrGain);
+    n.adsrGain.connect(n.distortion);
+    n.distortion.connect(n.delay); n.distortion.connect(n.dry);
+    n.delay.connect(n.feedback); n.feedback.connect(n.delay); n.delay.connect(n.wet);
+    
+    n.dry.connect(n.masterOut);
+    n.wet.connect(n.masterOut);
+    n.masterOut.connect(context.destination);
+    
+    return n;
+}
+
+function applyAdsr(config, gainNode, now) {
+    const a = parseFloat(config.attack), d = parseFloat(config.decay), s = parseFloat(config.sustain), r = parseFloat(config.release);
+    const noteDuration = parseFloat(config.duration);
+    const sustainEndTime = now + a + d + noteDuration;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.linearRampToValueAtTime(1.0, now + a);
+    gainNode.gain.linearRampToValueAtTime(s, now + a + d);
+    gainNode.gain.setValueAtTime(s, sustainEndTime);
+    gainNode.gain.linearRampToValueAtTime(0.0001, sustainEndTime + r);
+    return sustainEndTime + r;
+}
+
+function playSound() {
+    initAudioContext();
+    if (isPlaying && !isPaused) return;
+    if (isPaused) {
+        audioCtx.resume();
+        startTime = audioCtx.currentTime - pausedTime;
+        isPaused = false;
+        startTimelineUpdater();
+        if (dom.loopToggle.checked) handleLoopToggle();
+        return;
+    }
+
+    if(isPlaying) stopSound(true);
+    
+    const config = gatherConfig();
+    nodes = buildAudioGraph(audioCtx, config);
+
+    const now = audioCtx.currentTime;
+    const stopTime = applyAdsr(config, nodes.adsrGain, now);
+    
+    nodes.osc1.start(now); nodes.osc2.start(now);
+    nodes.noise.start(now); nodes.lfo.start(now);
+    
+    const effectTail = 2.0;
+    nodes.osc1.stop(now + stopTime + effectTail);
+    nodes.osc2.stop(now + stopTime + effectTail);
+    nodes.noise.stop(now + stopTime + effectTail);
+    nodes.lfo.stop(now + stopTime + effectTail);
+
+    startTime = now;
+    isPlaying = true;
+    isPaused = false;
+    startTimelineUpdater();
+    handleLoopToggle();
+}
+
+function updateLiveSound() {
+    if (!isPlaying || isPaused || !audioCtx) return;
+    const config = gatherConfig();
+    const now = audioCtx.currentTime;
+    const rampTime = now + 0.02;
+
+    nodes.osc1.type = config.waveform1;
+    nodes.osc2.type = config.waveform2;
+    
+    nodes.osc1.frequency.linearRampToValueAtTime(parseFloat(config.frequency), rampTime);
+    nodes.osc2.frequency.linearRampToValueAtTime(parseFloat(config.frequency), rampTime);
+    nodes.osc2.detune.linearRampToValueAtTime(parseFloat(config.detune2), rampTime);
+
+    nodes.mix1.gain.linearRampToValueAtTime(parseFloat(config.mix1), rampTime);
+    nodes.mix2.gain.linearRampToValueAtTime(parseFloat(config.mix2), rampTime);
+    nodes.mixNoise.gain.linearRampToValueAtTime(parseFloat(config.mixNoise), rampTime);
+    
+    nodes.filter.type = config.filterType;
+    nodes.filter.frequency.linearRampToValueAtTime(parseFloat(config.filterCutoff), rampTime);
+    nodes.filter.Q.linearRampToValueAtTime(parseFloat(config.filterQ), rampTime);
+    
+    nodes.lfo.type = config.lfoWave;
+    nodes.lfo.frequency.linearRampToValueAtTime(parseFloat(config.lfoRate), rampTime);
+    
+    const lfoTarget = config.lfoTarget;
+    const lfoDepth = parseFloat(config.lfoDepth);
+    nodes.lfoGain.gain.cancelScheduledValues(0);
+    nodes.lfoGain.disconnect();
+    
+    if (lfoTarget !== 'none') {
+        nodes.lfo.connect(nodes.lfoGain);
+        if (lfoTarget === 'pitch') { nodes.lfoGain.gain.value = lfoDepth; nodes.lfoGain.connect(nodes.osc1.detune); nodes.lfoGain.connect(nodes.osc2.detune); } 
+        else if (lfoTarget === 'volume') { nodes.lfoGain.gain.value = lfoDepth / 1000; nodes.lfoGain.connect(nodes.adsrGain.gain); } 
+        else if (lfoTarget === 'filter') { nodes.lfoGain.gain.value = lfoDepth * 10; nodes.lfoGain.connect(nodes.filter.frequency); }
+    }
+    
+    nodes.distortion.curve = makeDistortionCurve(parseFloat(config.distortion));
+    nodes.delay.delayTime.linearRampToValueAtTime(parseFloat(config.delayTime), rampTime);
+    nodes.feedback.gain.linearRampToValueAtTime(parseFloat(config.delayFeedback), rampTime);
+    nodes.dry.gain.linearRampToValueAtTime(1.0 - parseFloat(config.delayMix), rampTime);
+    nodes.wet.gain.linearRampToValueAtTime(parseFloat(config.delayMix), rampTime);
+}
+
+function pauseSound() {
+    if (!isPlaying || isPaused) return;
+    audioCtx.suspend();
+    pausedTime = audioCtx.currentTime - startTime;
+    isPaused = true;
+    if(loopTimeoutId) clearTimeout(loopTimeoutId);
+    if(timelineIntervalId) clearInterval(timelineIntervalId);
+}
+
+function stopSound(internalCall = false) {
+    if (!isPlaying && !internalCall) return;
+    if (audioCtx && audioCtx.state !== 'closed') {
+        Object.values(nodes).forEach(node => {
+            if (node.stop) { try { node.stop(audioCtx.currentTime); } catch(e) {} }
+            try { node.disconnect(); } catch(e) {}
+        });
+        if (!internalCall) {
+            audioCtx.close().then(() => audioCtx = null);
+        }
+    }
+    nodes = {};
+    isPlaying = false;
+    isPaused = false;
+    dom.timelineProgress.style.width = '0%';
+    if (loopTimeoutId) clearTimeout(loopTimeoutId);
+    if (timelineIntervalId) clearInterval(timelineIntervalId);
+}
+
+function handleLoopToggle() {
+    if(loopTimeoutId) clearTimeout(loopTimeoutId);
+    if (dom.loopToggle.checked && isPlaying && !isPaused) {
+        const config = gatherConfig();
+        const duration = (parseFloat(config.attack) + parseFloat(config.decay) + parseFloat(config.duration)) * 1000;
+        const remainingTime = duration - ((audioCtx.currentTime - startTime) * 1000);
+        
+        loopTimeoutId = setTimeout(() => {
+            if(dom.loopToggle.checked && isPlaying && !isPaused) {
+                playSound();
+            }
+        }, remainingTime > 0 ? remainingTime : duration);
+    }
+}
+
+function startTimelineUpdater() {
+    if (timelineIntervalId) clearInterval(timelineIntervalId);
+    const config = gatherConfig();
+    const totalDuration = parseFloat(config.attack) + parseFloat(config.decay) + parseFloat(config.duration) + parseFloat(config.release);
+
+    timelineIntervalId = setInterval(() => {
+        if (!isPlaying || isPaused) {
+            clearInterval(timelineIntervalId);
+            return;
+        }
+        const elapsedTime = audioCtx.currentTime - startTime;
+        const progress = (elapsedTime / totalDuration) * 100;
+        dom.timelineProgress.style.width = `${Math.min(progress, 100)}%`;
+        if (progress >= 100 && !dom.loopToggle.checked) {
+            clearInterval(timelineIntervalId);
+        }
+    }, 50);
+}
+
+
+// --- Randomizer ---
+function randomizeSettings() {
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        const min = parseFloat(slider.min), max = parseFloat(slider.max), step = parseFloat(slider.step) || 1;
+        const randomVal = Math.random() * (max - min) + min;
+        slider.value = Math.min(max, Math.max(min, Math.round(randomVal / step) * step));
+    });
+    document.querySelectorAll('select').forEach(select => {
+        select.selectedIndex = Math.floor(Math.random() * select.options.length);
+    });
+
+    dom.attack.value = Math.random() * 0.2 + 0.001;
+    dom.release.value = Math.random() * 2 + 0.1;
+    dom.sustain.value = Math.random() * 0.8 + 0.2;
+    dom.duration.value = Math.random() * 1.5 + 0.05;
+    dom.frequency.value = Math.random() * 860 + 60;
+
+    updateControlValues();
+    if (isPlaying && !isPaused) {
+        updateLiveSound();
+    }
+}
+
+// --- UI & Visualization ---
+function updateControlValues() {
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        const output = document.querySelector(`output[for="${slider.id}"]`);
+        if (output) {
+            let value = parseFloat(slider.value).toFixed(2);
+            const valNum = parseFloat(slider.value);
+            if (['frequency', 'filterCutoff', 'lfoRate'].includes(slider.id)) {
+                output.textContent = `${valNum >= 1000 ? (valNum / 1000).toFixed(1) + 'k' : valNum.toFixed(1)} Hz`;
+            } else if (['attack', 'decay', 'release', 'duration', 'delayTime'].includes(slider.id)) {
+                output.textContent = `${value} s`;
+            } else if (slider.id === 'detune2') {
+                output.textContent = `${parseInt(slider.value)} c`;
+            } else if (['lfoDepth', 'distortion'].includes(slider.id)) {
+                output.textContent = `${parseInt(slider.value)}`;
+            } else {
+                output.textContent = value;
+            }
+        }
+    });
+}
+
+// --- Utility & I/O ---
+function gatherConfig() {
+    const config = {};
+    document.querySelectorAll('[id]').forEach(el => {
+        if(el.tagName === 'INPUT' || el.tagName === 'SELECT') { config[el.id] = el.value; }
+    });
+    return config;
+}
+
+function applyConfig(config) {
+     for (const key in config) { if (dom[key]) dom[key].value = config[key]; }
+    updateControlValues();
+}
+
+function exportConfig() {
+    const btn = dom.exportJsonBtn; const originalText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Exporting...';
+    setTimeout(() => {
+        try {
+            const blob = new Blob([JSON.stringify(gatherConfig(), null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'synth-config.json';
+            document.body.appendChild(a); a.click();
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+            btn.textContent = 'Success!';
+        } catch (e) { console.error("Config export failed:", e); btn.textContent = 'Error!';
+        } finally { setTimeout(() => { btn.disabled = false; btn.textContent = originalText; }, 1500); }
+    }, 50);
+}
+
+function importConfig(event) {
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { try { applyConfig(JSON.parse(e.target.result)); } catch (err) { alert('Error parsing config file.'); } };
+    reader.readAsText(file); event.target.value = null;
+}
+
+function exportWav() {
+    const btn = dom.exportWavBtn; const originalText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Rendering...';
+    setTimeout(() => {
+        try {
+            const config = gatherConfig();
+            const totalDuration = parseFloat(config.attack) + parseFloat(config.decay) + parseFloat(config.duration) + parseFloat(config.release) + 2.0;
+            const offlineCtx = new OfflineAudioContext(1, Math.ceil(44100 * totalDuration), 44100);
+            const offlineNodes = buildAudioGraph(offlineCtx, config);
+            const stopTime = applyAdsr(config, offlineNodes.adsrGain, 0);
+            
+            offlineNodes.osc1.start(0); offlineNodes.osc2.start(0); offlineNodes.noise.start(0); offlineNodes.lfo.start(0);
+            offlineNodes.osc1.stop(stopTime + 1.5); offlineNodes.osc2.stop(stopTime + 1.5);
+            offlineNodes.noise.stop(stopTime + 1.5); offlineNodes.lfo.stop(stopTime + 1.5);
+            
+            offlineCtx.startRendering().then(renderedBuffer => {
+                const blob = new Blob([audioBufferToWav(renderedBuffer)], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'synth-pro.wav';
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+                btn.textContent = 'Success!';
+            }).catch(err => { console.error('Rendering failed: ', err); btn.textContent = 'Error!';
+            }).finally(() => { setTimeout(() => { btn.disabled = false; btn.textContent = originalText; }, 1500); });
+        } catch (e) { console.error("Export setup failed: ", e); btn.textContent = "Setup Error!";
+            setTimeout(() => { btn.disabled = false; btn.textContent = originalText; }, 2000);
+        }
+    }, 50);
+}
+
+function makeDistortionCurve(amount) {
+    const k = amount, n_samples = 44100, curve = new Float32Array(n_samples), deg = Math.PI / 180;
+    for (let i = 0; i < n_samples; ++i) {
+        const x = i * 2 / n_samples - 1;
+        curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+}
+
+function audioBufferToWav(buffer) { let len = buffer.length * 2 + 44, view = new DataView(new ArrayBuffer(len)), pos = 0;
+function setUint16(data) { view.setUint16(pos, data, true); pos += 2; } function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+setUint32(0x46464952); setUint32(len - 8); setUint32(0x45564157); setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(1); setUint32(buffer.sampleRate); setUint32(buffer.sampleRate * 2); setUint16(2); setUint16(16); setUint32(0x61746164); setUint32(len - pos - 4);
+const channelData = buffer.getChannelData(0);
+for (let i = 0; i < channelData.length; i++, pos += 2) {
+    let sample = Math.max(-1, Math.min(1, channelData[i]));
+    view.setInt16(pos, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+} return view; }
+
+function createNoiseBuffer(context, type, duration) {
+    const bufferSize = context.sampleRate * duration;
+    const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+    const output = buffer.getChannelData(0);
+    let lastOut = 0, b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+    for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        switch(type) {
+            case 'white': output[i] = white; break;
+            case 'pink':
+                b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759; b2 = 0.96900 * b2 + white * 0.1538520; b3 = 0.86650 * b3 + white * 0.3104856; b4 = 0.55000 * b4 + white * 0.5329522; b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362; output[i] *= 0.11; b6 = white * 0.115926;
+                break;
+            case 'brown': lastOut = (lastOut + (0.02 * white)) / 1.02; output[i] = lastOut; output[i] *= 3.5; break;
+        }
+    }
+    return buffer;
+}
+
+// --- Initialize ---
+window.addEventListener('load', () => {
+    setupEventListeners();
+});
+</script>
+</body>
+</html>
+
+

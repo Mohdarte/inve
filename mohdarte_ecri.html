@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohdarte Ecri</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Set theme on initial load to prevent flash of wrong theme
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        // Configure Tailwind for dark mode
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-color: #4f46e5;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        
+        #editor {
+            outline: none;
+            caret-color: var(--brand-color);
+            line-height: 1.8;
+            padding: 1rem;
+            height: calc(100vh - 170px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #editor p { margin-bottom: 1rem; }
+        
+        .bottom-toolbar {
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+        .bottom-toolbar.hidden { transform: translateY(100%); }
+
+        .toolbar-btn { transition: all 0.2s ease; }
+        .toolbar-btn.active {
+            background-color: #e0e7ff;
+            color: var(--brand-color);
+        }
+        .dark .toolbar-btn.active {
+            background-color: #3730a3;
+            color: #e0e7ff;
+        }
+        
+        .modal { 
+            display: none; 
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal.active { 
+            display: flex;
+            opacity: 1;
+        }
+        
+        .custom-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.2em;
+            padding-right: 2rem;
+        }
+        .dark .custom-select {
+             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        }
+
+        /* Modal Content Animation */
+        .modal .modal-content {
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 h-full flex flex-col transition-colors duration-300">
+
+    <!-- Top Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-md p-3 flex justify-between items-center z-20 shrink-0 transition-colors duration-300">
+        <h1 id="doc-title" contenteditable="true" class="text-lg font-bold text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-indigo-500 rounded-md px-2 py-1">MyDocument</h1>
+        <div class="flex items-center space-x-1">
+            <button id="thesaurus-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Open Thesaurus">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 font-bold"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+            </button>
+            <button id="dictionary-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Open Dictionary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            </button>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Toggle Theme">
+                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 hidden dark:block"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 block dark:hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+            <button id="import-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Import Document">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+            <button id="export-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Export Document">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Editor Area -->
+    <main class="flex-grow overflow-hidden">
+        <div id="editor" class="bg-white dark:bg-gray-800 h-full transition-colors duration-300" contenteditable="true" spellcheck="true">
+            <p>Start writing your masterpiece here. Use the toolbar below to format your text.</p>
+        </div>
+    </main>
+    <input type="file" id="file-input" class="hidden" accept=".txt,.html">
+
+    <!-- Bottom Stats and Toggle -->
+    <footer class="bg-white dark:bg-gray-800 px-4 py-1.5 flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 shrink-0 transition-colors duration-300">
+        <div id="stats">0 words, 0 characters</div>
+        <button id="toggle-toolbar-btn" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m18 15-6-6-6 6"/></svg>
+        </button>
+    </footer>
+
+    <!-- Floating Formatting Toolbar -->
+    <div id="bottom-toolbar" class="bottom-toolbar fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-2 border-t border-gray-200 dark:border-gray-700 z-10 transition-colors duration-300">
+        <div class="flex items-center space-x-1 overflow-x-auto pb-2">
+            <select id="font-select" class="toolbar-btn custom-select bg-gray-100 dark:bg-gray-700 dark:text-gray-200 border-none rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                <option>Inter</option><option>Arial</option><option>Georgia</option><option>Times New Roman</option><option>Courier New</option><option>Verdana</option>
+            </select>
+            <select id="size-select" class="toolbar-btn custom-select bg-gray-100 dark:bg-gray-700 dark:text-gray-200 border-none rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                <option value="3">Normal</option><option value="1">Small</option><option value="5">Large</option><option value="7">Heading</option>
+            </select>
+            <div class="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="bold" title="Bold"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="italic" title="Italic"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="underline" title="Underline"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="strikeThrough" title="Strikethrough"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg></button>
+            <div class="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="justifyLeft" title="Align Left"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg></button>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="justifyCenter" title="Align Center"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg></button>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="justifyRight" title="Align Right"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg></button>
+            <div class="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="undo" title="Undo"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
+            <button class="toolbar-btn p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" data-command="redo" title="Redo"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 0 9 9 9 9 0 0 0 6-2.3L21 13"/></svg></button>
+        </div>
+    </div>
+
+    <!-- Modals: Export, Dictionary, Thesaurus -->
+    <div id="export-modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-30">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6">
+            <h2 class="text-xl font-bold mb-4">Export Document</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="export-pdf" class="flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                    <svg class="w-8 h-8 text-red-600 mb-2" viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13.5,19H7V18H13.5V19M13.5,16H7V15H13.5V16M10,12H7V11H10V12M13,9V3.5L18.5,9H13Z" /></svg>
+                    <span class="font-medium text-sm">PDF</span>
+                </button>
+                <button id="export-html" class="flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                    <svg class="w-8 h-8 text-blue-600 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span class="font-medium text-sm">HTML</span>
+                </button>
+                <button id="export-txt" class="flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                     <svg class="w-8 h-8 text-gray-600 dark:text-gray-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+                    <span class="font-medium text-sm">Plain Text</span>
+                </button>
+                 <button id="export-md" class="flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors">
+                    <svg class="w-8 h-8 text-green-600 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 13a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-5z"></path><path d="M8 12v7"></path></svg>
+                    <span class="font-medium text-sm">Markdown</span>
+                </button>
+            </div>
+            <button id="close-export-modal" class="mt-6 w-full bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Close</button>
+        </div>
+    </div>
+    
+    <div id="dictionary-modal" class="modal fixed inset-0 bg-black bg-opacity-60 items-center justify-center p-4 z-40">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg h-[90vh] flex flex-col">
+            <header class="p-4 border-b dark:border-gray-700 flex justify-between items-center shrink-0"><h2 class="text-xl font-bold">Dictionary</h2><button id="close-dictionary-modal" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-2xl leading-none">&times;</button></header>
+            <div class="p-4 shrink-0"><div class="relative"><input type="text" id="dictionary-search-input" placeholder="Search for a word..." class="w-full bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-indigo-500 focus:ring-0 rounded-md py-2 pl-10 pr-4"><svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div></div>
+            <div id="dictionary-results" class="px-4 pb-4 grow overflow-y-auto"><div class="text-center text-gray-500 dark:text-gray-400 mt-8"><p>Enter a word to see its definition.</p></div></div>
+        </div>
+    </div>
+    
+    <div id="thesaurus-modal" class="modal fixed inset-0 bg-black bg-opacity-60 items-center justify-center p-4 z-40">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg h-[90vh] flex flex-col">
+            <header class="p-4 border-b dark:border-gray-700 flex justify-between items-center shrink-0"><h2 class="text-xl font-bold">Thesaurus</h2><button id="close-thesaurus-modal" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-2xl leading-none">&times;</button></header>
+            <div class="p-4 shrink-0"><div class="relative"><input type="text" id="thesaurus-search-input" placeholder="Search for a word..." class="w-full bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-indigo-500 focus:ring-0 rounded-md py-2 pl-10 pr-4"><svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div></div>
+            <div id="thesaurus-results" class="px-4 pb-4 grow overflow-y-auto"><div class="text-center text-gray-500 dark:text-gray-400 mt-8"><p>Enter a word to find synonyms and antonyms.</p></div></div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Cache DOM elements
+    const editor = document.getElementById('editor');
+    const docTitle = document.getElementById('doc-title');
+    const stats = document.getElementById('stats');
+    const fileInput = document.getElementById('file-input');
+    const toolbar = document.getElementById('bottom-toolbar');
+    
+    // --- Theme ---
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    });
+
+    // --- Formatting & Toolbar ---
+    document.querySelectorAll('[data-command]').forEach(b => b.addEventListener('click', () => {
+        document.execCommand(b.dataset.command, false, null);
+        editor.focus();
+        updateToolbar();
+    }));
+    document.getElementById('font-select').addEventListener('change', e => document.execCommand('fontName', false, e.target.value));
+    document.getElementById('size-select').addEventListener('change', e => document.execCommand('fontSize', false, e.target.value));
+    const updateToolbar = () => document.querySelectorAll('[data-command]').forEach(b => b.classList.toggle('active', document.queryCommandState(b.dataset.command)));
+    ['keyup', 'mouseup', 'selectionchange'].forEach(e => document.addEventListener(e, updateToolbar));
+    document.getElementById('toggle-toolbar-btn').addEventListener('click', () => {
+        toolbar.classList.toggle('hidden');
+        document.getElementById('toggle-toolbar-btn').querySelector('svg').style.transform = toolbar.classList.contains('hidden') ? 'rotate(180deg)' : '';
+    });
+
+    // --- Stats ---
+    const updateStats = () => {
+        const text = editor.innerText;
+        const words = text.trim().split(/\s+/).filter(Boolean).length;
+        stats.textContent = `${words} words, ${text.length} characters`;
+    };
+    editor.addEventListener('input', updateStats);
+    updateStats();
+
+    // --- Import ---
+    document.getElementById('import-btn').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = event => {
+            editor.innerHTML = file.type === 'text/html' ? event.target.result : `<p>${event.target.result.replace(/\n/g, '</p><p>')}</p>`;
+            updateStats();
+        };
+        reader.readAsText(file);
+    });
+    
+    // --- Modals ---
+    const setupModal = (btnId, modalId, closeBtnId) => {
+        const modal = document.getElementById(modalId);
+        document.getElementById(btnId).addEventListener('click', () => modal.classList.add('active'));
+        document.getElementById(closeBtnId).addEventListener('click', () => modal.classList.remove('active'));
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
+    };
+    setupModal('export-btn', 'export-modal', 'close-export-modal');
+    setupModal('dictionary-btn', 'dictionary-modal', 'close-dictionary-modal');
+    setupModal('thesaurus-btn', 'thesaurus-modal', 'close-thesaurus-modal');
+
+    // --- Export ---
+    const downloadFile = (filename, content, type) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([content], { type }));
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+    const getFilename = () => docTitle.textContent.trim().replace(/\s+/g, '_') || 'document';
+    document.getElementById('export-html').addEventListener('click', () => downloadFile(`${getFilename()}.html`, editor.innerHTML, 'text/html'));
+    document.getElementById('export-txt').addEventListener('click', () => downloadFile(`${getFilename()}.txt`, editor.innerText, 'text/plain'));
+    document.getElementById('export-pdf').addEventListener('click', () => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        const isDark = document.documentElement.classList.contains('dark');
+        if (isDark) editor.classList.remove('dark:bg-gray-800');
+        html2canvas(editor, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+            if (isDark) editor.classList.add('dark:bg-gray-800');
+            const imgData = canvas.toDataURL('image/png');
+            const { width: imgW, height: imgH } = pdf.getImageProperties(imgData);
+            const pdfW = pdf.internal.pageSize.getWidth(), pdfH = (imgH * pdfW) / imgW;
+            let leftH = pdfH, pos = 0;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+            leftH -= pdf.internal.pageSize.getHeight();
+            while (leftH > 0) {
+                pos = leftH - pdfH;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, pos, pdfW, pdfH);
+                leftH -= pdf.internal.pageSize.getHeight();
+            }
+            pdf.save(`${getFilename()}.pdf`);
+        });
+        document.getElementById('export-modal').classList.remove('active');
+    });
+    document.getElementById('export-md').addEventListener('click', () => {
+        let md = editor.innerHTML.replace(/<p>(.*?)<\/p>/gi, '$1\n\n').replace(/<strong>(.*?)<\/strong>|<b>(.*?)<\/b>/gi, '**$1$2**').replace(/<em>(.*?)<\/em>|<i>(.*?)<\/i>/gi, '*$1$2*').replace(/<strike>(.*?)<\/strike>/gi, '~~$1~~').replace(/<u>(.*?)<\/u>/gi, '$1').replace(/<br>/gi, '\n');
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = md;
+        downloadFile(`${getFilename()}.md`, tempDiv.textContent || tempDiv.innerText || '', 'text/markdown');
+        document.getElementById('export-modal').classList.remove('active');
+    });
+
+    // --- Dictionary & Thesaurus API Logic ---
+    const handleApiSearch = (inputId, resultsId, apiParser) => {
+        const searchInput = document.getElementById(inputId);
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                const word = searchInput.value.trim();
+                const resultsContainer = document.getElementById(resultsId);
+                if (!word) return;
+                resultsContainer.innerHTML = `<div class="text-center p-8">Loading...</div>`;
+                try {
+                    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                    if (!response.ok) throw new Error('Word not found');
+                    const data = await response.json();
+                    apiParser(data, resultsContainer);
+                } catch (error) {
+                    resultsContainer.innerHTML = `<div class="text-center p-8 text-red-500">${error.message}. Please try another word.</div>`;
+                }
+            }, 300);
+        });
+    };
+    
+    // -- Dictionary Parser
+    const displayDictionaryResults = (data, container) => {
+        const entry = data[0];
+        let html = `<div class="space-y-6"><div class="pb-4 border-b dark:border-gray-700"><h3 class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">${entry.word}</h3><p class="text-lg text-gray-500 dark:text-gray-400">${entry.phonetic || ''}</p></div>`;
+        entry.meanings.forEach(m => {
+            html += `<div class="space-y-3"><h4 class="text-xl font-semibold italic text-gray-700 dark:text-gray-300">${m.partOfSpeech}</h4><ol class="list-decimal list-inside space-y-2 text-gray-800 dark:text-gray-200">`;
+            m.definitions.forEach(d => html += `<li><p>${d.definition}</p>${d.example ? `<p class="text-sm text-gray-500 dark:text-gray-400 italic mt-1">"${d.example}"</p>` : ''}</li>`);
+            html += `</ol></div>`;
+        });
+        container.innerHTML = html + `</div>`;
+    };
+
+    // -- Thesaurus Parser
+    const displayThesaurusResults = (data, container) => {
+        const entry = data[0];
+        let allSynonyms = [], allAntonyms = [];
+        entry.meanings.forEach(m => {
+            allSynonyms.push(...(m.synonyms || []));
+            allAntonyms.push(...(m.antonyms || []));
+        });
+        allSynonyms = [...new Set(allSynonyms)]; // Remove duplicates
+        allAntonyms = [...new Set(allAntonyms)];
+
+        let html = `<div class="space-y-6"><div class="pb-4 border-b dark:border-gray-700"><h3 class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">${entry.word}</h3></div>`;
+        if(allSynonyms.length > 0) html += `<div><h4 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Synonyms</h4><div class="flex flex-wrap gap-2">${allSynonyms.map(s => `<span class="bg-gray-200 dark:bg-gray-600 rounded-full px-3 py-1 text-sm">${s}</span>`).join('')}</div></div>`;
+        if(allAntonyms.length > 0) html += `<div><h4 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Antonyms</h4><div class="flex flex-wrap gap-2">${allAntonyms.map(a => `<span class="bg-gray-200 dark:bg-gray-600 rounded-full px-3 py-1 text-sm">${a}</span>`).join('')}</div></div>`;
+        if(allSynonyms.length === 0 && allAntonyms.length === 0) html += `<p class="text-gray-500 dark:text-gray-400">No synonyms or antonyms found.</p>`;
+        container.innerHTML = html + `</div>`;
+    };
+
+    handleApiSearch('dictionary-search-input', 'dictionary-results', displayDictionaryResults);
+    handleApiSearch('thesaurus-search-input', 'thesaurus-results', displayThesaurusResults);
+});
+</script>
+</body>
+</html>
+
+
