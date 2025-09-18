@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohdarte Feelt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        canvas {
+            cursor: grab;
+        }
+        canvas.grabbing {
+            cursor: grabbing;
+        }
+        body.filtering {
+            cursor: progress;
+        }
+        body.filtering .controls-panel {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col md:flex-row h-screen overflow-hidden">
+
+    <!-- Controls Panel -->
+    <div class="w-full md:w-80 lg:w-96 bg-white p-6 custom-shadow z-10 overflow-y-auto controls-panel">
+        <div class="space-y-6">
+            <h1 class="text-2xl font-bold text-gray-900">Mohdarte Feelt v0.0.0.1</h1>
+            
+            <!-- Image Upload -->
+            <div>
+                <label for="imageUpload" class="block text-sm font-medium text-gray-700 mb-2">Upload Image</label>
+                <input type="file" id="imageUpload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 transition-colors">
+            </div>
+
+            <!-- Filter Parameters -->
+            <div>
+                <h2 class="text-lg font-semibold mb-3">Filter Layers</h2>
+                <div id="parameters-container" class="space-y-3">
+                    <!-- Parameters will be dynamically added here -->
+                </div>
+                <button id="add-parameter-btn" class="mt-4 w-full flex items-center justify-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-transform transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    Add Filter Layer
+                </button>
+            </div>
+             <!-- Controls -->
+            <div>
+                <h2 class="text-lg font-semibold mb-3">Controls</h2>
+                 <button id="reset-view-btn" class="mt-2 w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.898 2.566A1.001 1.001 0 0116.05 9.58a5 5 0 00-9.539-1.88l.244.243a1 1 0 01-1.414 1.415l-2-2a1 1 0 010-1.414l2-2a1 1 0 111.414 1.414l-.244.244A7.002 7.002 0 0111 4.002V5a1 1 0 11-2 0V3a1 1 0 011-1zm2.95 10.42a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-2 2a1 1 0 01-1.414-1.414l.244-.244A7.002 7.002 0 015.002 15V13a1 1 0 112 0v2.101a7.002 7.002 0 01-3.142-8.581 1.001 1.001 0 011.09-1.1z" clip-rule="evenodd" /></svg>
+                    Reset View
+                </button>
+                <button id="export-btn" class="mt-2 w-full flex items-center justify-center gap-2 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-transform transform hover:scale-105">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                    Export Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="flex-1 bg-gray-200 flex items-center justify-center overflow-hidden">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const imageUpload = document.getElementById('imageUpload');
+        const addParamBtn = document.getElementById('add-parameter-btn');
+        const paramsContainer = document.getElementById('parameters-container');
+        const resetViewBtn = document.getElementById('reset-view-btn');
+        const exportBtn = document.getElementById('export-btn');
+
+        let image = new Image();
+        let parameters = [];
+        let filteredImageCanvas = document.createElement('canvas');
+        let isFiltering = false;
+        
+        let transform = { scale: 1, translateX: 0, translateY: 0 };
+        let isPanning = false;
+        let lastPanPosition = { x: 0, y: 0 };
+        
+        // --- Initialization and Event Listeners ---
+        function init() {
+            setupCanvas();
+            loadDefaultImage();
+            addEventListeners();
+            addNewParameter('Genesis');
+        }
+
+        function setupCanvas() {
+            const container = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+            ctx.scale(dpr, dpr);
+        }
+
+        function loadDefaultImage() {
+            image.crossOrigin = 'Anonymous';
+            image.onload = () => {
+                filteredImageCanvas.width = image.width;
+                filteredImageCanvas.height = image.height;
+                resetView();
+                applyAllFilters();
+            };
+            image.onerror = () => {
+                console.error("Failed to load placeholder image.");
+                const dpr = window.devicePixelRatio || 1;
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.fillText("Could not load image.", canvas.width/(2*dpr), canvas.height/(2*dpr));
+            };
+            image.src = 'https://placehold.co/800x600/E2E8F0/4A5568?text=Upload+An+Image';
+        }
+
+        function addEventListeners() {
+            window.addEventListener('resize', () => { setupCanvas(); redraw(); });
+            imageUpload.addEventListener('change', handleImageUpload);
+            addParamBtn.addEventListener('click', () => addNewParameter('New Layer'));
+            paramsContainer.addEventListener('input', handleParameterChange);
+            paramsContainer.addEventListener('click', handleParameterRemove);
+            resetViewBtn.addEventListener('click', resetView);
+            exportBtn.addEventListener('click', exportImage);
+            
+            canvas.addEventListener('mousedown', startPan);
+            canvas.addEventListener('mousemove', pan);
+            canvas.addEventListener('mouseup', endPan);
+            canvas.addEventListener('mouseleave', endPan);
+            canvas.addEventListener('wheel', handleZoom, { passive: false });
+        }
+
+        // --- UI Handlers ---
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => { image.src = event.target.result; };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function addNewParameter(seed = '') {
+            const id = `param-${Date.now()}`;
+            parameters.push({ id, seed });
+            
+            const paramEl = document.createElement('div');
+            paramEl.id = id;
+            paramEl.className = 'flex items-center gap-2';
+            paramEl.innerHTML = `
+                <input type="text" value="${seed}" data-id="${id}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-shadow" placeholder="Enter seed...">
+                <button data-remove-id="${id}" class="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-100 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            `;
+            paramsContainer.appendChild(paramEl);
+            applyAllFilters();
+        }
+
+        function handleParameterChange(e) {
+            if (e.target.tagName === 'INPUT') {
+                const param = parameters.find(p => p.id === e.target.dataset.id);
+                if (param) param.seed = e.target.value;
+                applyAllFilters();
+            }
+        }
+        
+        function handleParameterRemove(e) {
+            const button = e.target.closest('button');
+            if(button && button.dataset.removeId) {
+                const id = button.dataset.removeId;
+                parameters = parameters.filter(p => p.id !== id);
+                document.getElementById(id).remove();
+                applyAllFilters();
+            }
+        }
+
+        function exportImage() {
+            const link = document.createElement('a');
+            link.download = `filtered-image-${Date.now()}.png`;
+            link.href = filteredImageCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // --- Main Filter Application Logic ---
+        async function applyAllFilters() {
+            if (!image.src || isFiltering || image.width === 0) return;
+            isFiltering = true;
+            document.body.classList.add('filtering');
+
+            try {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = image.width;
+                tempCanvas.height = image.height;
+                const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+                const finalCtx = filteredImageCanvas.getContext('2d');
+                finalCtx.clearRect(0, 0, image.width, image.height);
+                finalCtx.drawImage(image, 0, 0);
+
+                for (const param of parameters) {
+                    if (param.seed.trim() === '') continue;
+
+                    const filterProps = generateFilterFromSeed(param.seed);
+                    const rand = mulberry32(filterProps.baseHash);
+                    const w = image.width;
+                    const h = image.height;
+
+                    tempCtx.clearRect(0, 0, w, h);
+                    tempCtx.drawImage(filteredImageCanvas, 0, 0);
+
+                    // 1. CSS filters (global adjustments)
+                    if (filterProps.hasCssFilters) {
+                        const tempCanvas2 = document.createElement('canvas');
+                        tempCanvas2.width = w; tempCanvas2.height = h;
+                        const tempCtx2 = tempCanvas2.getContext('2d');
+                        tempCtx2.filter = `
+                            contrast(${filterProps.contrast}%) brightness(${filterProps.brightness}%) 
+                            saturate(${filterProps.saturate}%) hue-rotate(${filterProps.hueRotate}deg) 
+                            blur(${filterProps.blur / 1000 * w}px) invert(${filterProps.invert}) 
+                            sepia(${filterProps.sepia}%)`;
+                        tempCtx2.drawImage(tempCanvas, 0, 0);
+                        tempCtx.clearRect(0,0,w,h);
+                        tempCtx.drawImage(tempCanvas2, 0, 0);
+                    }
+                    
+                    // 2. Full-image replacement / generative filters
+                    let imageData = tempCtx.getImageData(0, 0, w, h);
+                    if (filterProps.sobel.enabled) {
+                       sobelOperator(imageData, [...imageData.data], w, h, filterProps.sobel);
+                    } else if (filterProps.dither.enabled) {
+                       floydSteinbergDithering(imageData, w, h, filterProps.dither.palette, rand);
+                    } else if (filterProps.reactionDiffusion.enabled) {
+                       runReactionDiffusion(imageData, w, h, filterProps.reactionDiffusion, rand);
+                    } else if (filterProps.paletteMap.enabled) {
+                        applyPaletteMapping(imageData, w, h, filterProps.paletteMap);
+                    } else if (filterProps.normalMap.enabled) {
+                        applyNormalMapLighting(imageData, [...imageData.data], w, h, filterProps.normalMap);
+                    } else if (filterProps.contour.enabled) {
+                        applyContourLines(imageData, [...imageData.data], w, h, filterProps.contour);
+                    } else if (filterProps.crystallize.enabled) {
+                        applyCrystallize(imageData, w, h, filterProps.crystallize, rand);
+                    } else {
+                        // 3. Standard per-pixel distortions and color effects
+                        if (filterProps.hasPixelEffects) {
+                           pixelProcessingLoop(imageData, [...imageData.data], w, h, filterProps, rand);
+                        }
+                    }
+                    tempCtx.putImageData(imageData, 0, 0);
+                    
+                    // 4. Canvas-level effects
+                    if (filterProps.halftone.enabled) applyHalftone(tempCtx, w, h, filterProps.halftone);
+                    if (filterProps.dataMosh.strength > 0) applyDataMoshing(tempCtx, filteredImageCanvas, w, h, filterProps.dataMosh, rand);
+                    if (filterProps.ascii.enabled) applyAscii(tempCtx, w, h, filterProps.ascii, rand);
+                    if (filterProps.voronoi.enabled) applyVoronoi(tempCtx, w, h, filterProps.voronoi, rand);
+                    if (filterProps.julia.enabled) applyJulia(tempCtx, w, h, filterProps.julia, rand);
+                    if (filterProps.recursiveTiling.enabled) applyRecursiveTiling(tempCtx, w, h, filterProps.recursiveTiling, rand);
+                    if (filterProps.truchet.enabled) applyTruchetTiling(tempCtx, w, h, filterProps.truchet, rand);
+                    if (filterProps.textOverlay.enabled) applyTextOverlay(tempCtx, w, h, filterProps.textOverlay, rand);
+                    if (filterProps.lsystem.enabled) applyLSystem(tempCtx, w, h, filterProps.lsystem, rand);
+                    if (filterProps.patchwork.enabled) applyPatchwork(tempCtx, filteredImageCanvas, w, h, filterProps.patchwork, rand);
+
+
+                    // 5. Final color tint
+                    tempCtx.globalCompositeOperation = filterProps.composite;
+                    tempCtx.fillStyle = `rgba(${filterProps.tint.r}, ${filterProps.tint.g}, ${filterProps.tint.b}, ${filterProps.tint.a})`;
+                    tempCtx.fillRect(0, 0, w, h);
+                    tempCtx.globalCompositeOperation = 'source-over';
+
+                    finalCtx.clearRect(0, 0, w, h);
+                    finalCtx.drawImage(tempCanvas, 0, 0);
+                }
+            } finally {
+                isFiltering = false;
+                document.body.classList.remove('filtering');
+                redraw();
+            }
+        }
+
+        function pixelProcessingLoop(imageData, originalData, w, h, filterProps, rand) {
+            const data = imageData.data;
+            const flowField = filterProps.flowField.enabled ? createFlowField(w, h, filterProps.flowField, rand) : null;
+            const noiseGen = filterProps.domainWarp.enabled ? perlinNoise(rand()) : null;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let x = (i / 4) % w, y = Math.floor((i / 4) / w);
+                let srcX = x, srcY = y;
+
+                // --- Geometric Distortions ---
+                if (filterProps.domainWarp.enabled) {
+                    const { octaves, frequency, amplitude } = filterProps.domainWarp;
+                    let qx = x, qy = y;
+                    for(let o=0; o<octaves; o++) {
+                        const f = frequency * Math.pow(2,o);
+                        const a = amplitude * Math.pow(0.5,o);
+                        qx += noiseGen.noise(qx*f, qy*f, 0) * a;
+                        qy += noiseGen.noise(qx*f, qy*f, 1) * a;
+                    }
+                    srcX = qx; srcY = qy;
+                }
+                if (flowField) {
+                    const angle = flowField[y * w + x];
+                    srcX += Math.cos(angle) * filterProps.flowField.strength;
+                    srcY += Math.sin(angle) * filterProps.flowField.strength;
+                }
+                if(filterProps.polar.enabled) {
+                    const dx=x-w/2, dy=y-h/2, r=Math.sqrt(dx*dx+dy*dy), a=Math.atan2(dy,dx);
+                    srcX = (a/(2*Math.PI)+0.5)*w; srcY = (r/(Math.min(w,h)/2))*h;
+                }
+                if(filterProps.wave.strength > 0) {
+                    if (filterProps.wave.direction === 'h') srcX += Math.sin(y*filterProps.wave.frequency)*filterProps.wave.strength;
+                    else srcY += Math.sin(x*filterProps.wave.frequency)*filterProps.wave.strength;
+                }
+                if (filterProps.swirl.strength !== 0) {
+                    const dx=srcX-w*filterProps.swirl.centerX, dy=srcY-h*filterProps.swirl.centerY;
+                    const d=Math.sqrt(dx*dx+dy*dy), rad=w*filterProps.swirl.radius;
+                    if(d<rad){ const p=(rad-d)/rad, a=Math.atan2(dy,dx)+p*p*filterProps.swirl.strength;
+                        srcX=w*filterProps.swirl.centerX+d*Math.cos(a); srcY=h*filterProps.swirl.centerY+d*Math.sin(a);
+                    }
+                }
+                
+                // --- Read distorted pixel ---
+                let r, g, b;
+                const sx=Math.floor(srcX), sy=Math.floor(srcY);
+                if (sx>=0 && sx<w && sy>=0 && sy<h) {
+                    const srcIdx = (sy*w+sx)*4;
+                    r=originalData[srcIdx]; g=originalData[srcIdx+1]; b=originalData[srcIdx+2];
+                } else { r=originalData[i]; g=originalData[i+1]; b=originalData[i+2]; }
+
+                // --- Color & Texture Manipulations ---
+                if (filterProps.chromaticAberration.enabled) {
+                    const { strength, centerX, centerY } = filterProps.chromaticAberration;
+                    const dx=x-centerX, dy=y-centerY, dist = Math.sqrt(dx*dx+dy*dy);
+                    const offset = strength * (dist / Math.max(w,h));
+                    const angle = Math.atan2(dy,dx);
+                    const r_sx = Math.floor(x - Math.cos(angle) * offset);
+                    const r_sy = Math.floor(y - Math.sin(angle) * offset);
+                    const b_sx = Math.floor(x + Math.cos(angle) * offset);
+                    const b_sy = Math.floor(y + Math.sin(angle) * offset);
+                    if(r_sx>=0&&r_sx<w&&r_sy>=0&&r_sy<h) r = originalData[(r_sy*w+r_sx)*4];
+                    if(b_sx>=0&&b_sx<w&&b_sy>=0&&b_sy<h) b = originalData[(b_sy*w+b_sx)*4+2];
+                }
+                if (filterProps.inkBleed.strength > 0) {
+                    let avgR=r, avgG=g, avgB=b, count=1;
+                    for(let oy=-1; oy<=1; oy++) for(let ox=-1; ox<=1; ox++) {
+                        const nx=x+ox, ny=y+oy;
+                        if(nx>=0 && nx<w && ny>=0 && ny<h) {
+                            const nIdx = (ny*w+nx)*4;
+                            const nBright = originalData[nIdx]*.299+originalData[nIdx+1]*.587+originalData[nIdx+2]*.114;
+                            if (nBright > 128) {
+                                const bleed = (nBright/255)*filterProps.inkBleed.strength;
+                                avgR += originalData[nIdx]*bleed; avgG += originalData[nIdx+1]*bleed; avgB += originalData[nIdx+2]*bleed;
+                                count += bleed;
+                            }
+                        }
+                    }
+                    r=avgR/count; g=avgG/count; b=avgB/count;
+                }
+                if (filterProps.vignette > 0) {
+                    const dxV=w/2-x, dyV=h/2-y, dV=Math.sqrt(dxV*dxV+dyV*dyV), maxD=Math.sqrt(w/2*w/2+h/2*h/2);
+                    const vig = 1-Math.pow(dV/maxD, 2)*filterProps.vignette; r*=vig; g*=vig; b*=vig;
+                }
+                if (filterProps.noise > 0) {
+                    const n=(rand()-0.5)*255*filterProps.noise; r+=n; g+=n; b+=n;
+                }
+                data[i]=r; data[i+1]=g; data[i+2]=b;
+            }
+            if(filterProps.pixelSort.enabled) applyPixelSort(imageData, w, h, filterProps.pixelSort, rand);
+        }
+        
+        // --- Filter Property Generation ---
+        function generateFilterFromSeed(seed) {
+            let hash = 0;
+            if (seed.length === 0) seed = "default";
+            for (let i = 0; i < seed.length; i++) { hash = ((hash << 5) - hash) + seed.charCodeAt(i); hash |= 0; }
+            const rand = mulberry32(hash);
+
+            const compositeOptions = ['multiply','screen','overlay','darken','lighten','color-dodge','color-burn','hard-light','soft-light','difference','exclusion'];
+            const randColor = () => [rand()*255, rand()*255, rand()*255];
+            const randColorStr = () => `rgb(${rand()*255},${rand()*255},${rand()*255})`;
+            
+            const props = {
+                baseHash: hash,
+                // CSS Filters
+                contrast: 50+rand()*200, brightness: 70+rand()*100, saturate: rand()*300, hueRotate: rand()*360,
+                blur: rand()>0.97 ? rand()*4 : 0, invert: rand()>0.995 ? 1 : 0, sepia: rand()>0.99 ? rand()*100 : 0,
+
+                // Textures & Simple Color
+                noise: rand()>0.8 ? rand()*0.1 : 0, vignette: rand()>0.8 ? 0.2+rand()*0.8 : 0,
+                
+                // Geometric Distortions
+                swirl: rand()>0.98 ? { strength:(rand()-0.5)*25, radius:0.1+rand()*1.5, centerX:rand(), centerY:rand() } : { strength:0 },
+                wave: rand()>0.98 ? { strength:rand()*40, frequency:0.005+rand()*0.1, direction:rand()>0.5?'h':'v' } : { strength:0 },
+                polar: rand()>0.995 ? { enabled:true } : { enabled:false },
+                domainWarp: rand() > 0.99 ? { enabled: true, octaves: Math.floor(2+rand()*3), frequency: 0.001+rand()*0.02, amplitude: 50+rand()*200 } : { enabled: false },
+                flowField: rand()>0.99 ? { enabled:true, strength:1+rand()*10, zoom:10+rand()*100 } : { enabled:false },
+
+                // Stylistic & Advanced Color
+                sobel: rand()>0.998 ? { enabled:true, invert:rand()>0.5, threshold:20+rand()*80 } : { enabled:false },
+                dither: rand()>0.998 ? { enabled:true, palette:Array.from({length:Math.floor(2+rand()*6)}, randColor) } : { enabled:false },
+                reactionDiffusion: rand()>0.999 ? {enabled:true,iterations:20+Math.floor(rand()*30),feed:0.03+rand()*0.04,kill:0.05+rand()*0.02,c1:randColor(),c2:randColor()} : {enabled:false},
+                paletteMap: rand()>0.995 ? { enabled:true, harmony:['analogous','triadic','complementary'][Math.floor(rand()*3)] } : { enabled:false },
+                inkBleed: rand()>0.98 ? { enabled:true, strength:0.1+rand()*0.4 } : { enabled:false },
+                normalMap: rand() > 0.997 ? { enabled: true, lightX: rand()*2-1, lightY: rand()*2-1, lightZ: 0.5+rand()*0.5, strength: 1+rand()*4 } : { enabled: false },
+                contour: rand() > 0.995 ? { enabled: true, levels: 5 + Math.floor(rand()*15), color: randColor(), width: 1 + rand()*2 } : { enabled: false },
+                crystallize: rand() > 0.998 ? { enabled: true, seeds: 50 + Math.floor(rand()*150), iterations: (image.width*image.height)/10 } : { enabled: false },
+
+                // Glitch, Pattern & Generative
+                pixelSort: rand()>0.985 ? { enabled:true, threshold:rand() } : { enabled:false },
+                chromaticAberration: rand()>0.97 ? { enabled:true, strength:5+rand()*40, centerX:rand()*image.width, centerY:rand()*image.height } : {enabled:false},
+                dataMosh: rand()>0.99 ? { strength:0.05+rand()*0.3, blockSize:8+Math.floor(rand()*24) } : { strength:0 },
+                halftone: rand()>0.99 ? { enabled:true, size:4+Math.floor(rand()*12), dotColor:randColorStr(), bgColor:randColorStr() } : {enabled:false},
+                ascii: rand()>0.998 ? { enabled:true, size:8+Math.floor(rand()*8), chars: ".:-=+*#%@", color:randColorStr() } : {enabled:false},
+                voronoi: rand()>0.995 ? { enabled:true, points:50+Math.floor(rand()*150), alpha:0.4+rand()*0.5 } : { enabled:false },
+                julia: rand()>0.998 ? { enabled:true, c_real:rand()*2-1, c_imag:rand()*2-1, alpha:0.5+rand()*0.5, blend:compositeOptions[Math.floor(rand()*compositeOptions.length)]} : {enabled:false},
+                recursiveTiling: rand()>0.995 ? { enabled:true, iterations:2+Math.floor(rand()*4), scale:0.6+rand()*0.3 } : {enabled:false},
+                truchet: rand() > 0.99 ? { enabled: true, size: 10 + Math.floor(rand() * 40), color: randColorStr(), weight: 1 + rand() * 4 } : { enabled: false },
+                textOverlay: rand() > 0.99 ? { enabled: true, count: 10 + Math.floor(rand() * 40) } : { enabled: false },
+                lsystem: rand() > 0.995 ? { enabled: true } : { enabled: false },
+                patchwork: rand() > 0.99 ? { enabled: true, count: 50 + rand()*200, maxSize: 0.2*Math.min(image.width, image.height) } : { enabled: false },
+
+                tint: { r:rand()*255, g:rand()*255, b:rand()*255, a:rand()*0.25 },
+                composite: compositeOptions[Math.floor(rand()*compositeOptions.length)]
+            };
+
+            props.hasCssFilters = props.contrast!==100||props.brightness!==100||props.saturate!==100||props.hueRotate!==0||props.blur>0||props.invert>0||props.sepia>0;
+            props.hasPixelEffects = props.noise>0||props.vignette>0||props.swirl.strength!==0||props.wave.strength>0||props.polar.enabled||props.pixelSort.enabled||props.inkBleed.enabled||props.flowField.enabled||props.chromaticAberration.enabled||props.domainWarp.enabled;
+            return props;
+        }
+
+        // --- Helper Functions for Complex Filters ---
+        function applyCrystallize(imageData, w, h, props, rand) {
+            const data = imageData.data;
+            const grid = new Int32Array(w*h).fill(-1);
+            const seeds = [];
+            for(let i=0; i<props.seeds; i++) {
+                const x = Math.floor(rand()*w);
+                const y = Math.floor(rand()*h);
+                const idx = y*w+x;
+                grid[idx] = i;
+                const dataIdx = idx * 4;
+                seeds.push({x, y, r: data[dataIdx], g: data[dataIdx+1], b: data[dataIdx+2] });
+            }
+
+            let frontier = seeds.map(s => ({x:s.x, y:s.y}));
+            
+            for(let i=0; i<props.iterations && frontier.length > 0; i++) {
+                const randIdx = Math.floor(rand() * frontier.length);
+                const current = frontier[randIdx];
+                frontier.splice(randIdx, 1);
+                
+                const currentGridIdx = current.y*w + current.x;
+                const owner = grid[currentGridIdx];
+                const ownerColor = seeds[owner];
+
+                const neighbors = [[-1,0],[1,0],[0,-1],[0,1]];
+                for(const [ox, oy] of neighbors) {
+                    const nx = current.x + ox, ny = current.y + oy;
+                    if(nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                        const neighborIdx = ny*w+nx;
+                        if(grid[neighborIdx] === -1) {
+                            grid[neighborIdx] = owner;
+                            const dataIdx = neighborIdx * 4;
+                            data[dataIdx] = ownerColor.r;
+                            data[dataIdx+1] = ownerColor.g;
+                            data[dataIdx+2] = ownerColor.b;
+                            frontier.push({x:nx, y:ny});
+                        }
+                    }
+                }
+            }
+        }
+        function applyPatchwork(ctx, sourceCanvas, w, h, props, rand) {
+            for(let i=0; i<props.count; i++) {
+                const size = (0.1 + rand()*0.9) * props.maxSize;
+                const sx = rand() * (w - size);
+                const sy = rand() * (h - size);
+                const dx = rand() * (w - size);
+                const dy = rand() * (h - size);
+                ctx.drawImage(sourceCanvas, sx, sy, size, size, dx, dy, size, size);
+            }
+        }
+        function applyLSystem(ctx, w, h, props, rand) {
+            const systems = [
+                { axiom: 'F', rules: { 'F': 'FF+[+F-F-F]-[-F+F+F]' }, angle: 25, len: 5+rand()*10 }, // Plant
+                { axiom: 'X', rules: { 'X': 'F+[[X]-X]-F[-FX]+X', 'F': 'FF' }, angle: 22.5, len: 10+rand()*10 }, // Plant 2
+                { axiom: 'F+F+F+F', rules: {'F': 'F+F-F-FF+F+F-F'}, angle: 90, len: 2+rand()*5 } // Koch curve variant
+            ];
+            const sys = systems[Math.floor(rand()*systems.length)];
+            let current = sys.axiom;
+            for(let i=0; i<4; i++) {
+                let next = '';
+                for(const char of current) next += sys.rules[char] || char;
+                current = next;
+            }
+
+            ctx.strokeStyle = `rgba(${rand()*255},${rand()*255},${rand()*255},${0.5+rand()*0.5})`;
+            ctx.lineWidth = 1 + rand()*2;
+            const state = { x: rand()*w, y: rand()*h, a: rand()*360 };
+            const stack = [];
+            const angleRad = sys.angle * Math.PI / 180;
+            
+            ctx.beginPath();
+            ctx.moveTo(state.x, state.y);
+            for(const cmd of current) {
+                if(cmd === 'F') {
+                    state.x += sys.len * Math.cos(state.a);
+                    state.y += sys.len * Math.sin(state.a);
+                    ctx.lineTo(state.x, state.y);
+                }
+                else if(cmd === '+') state.a += angleRad;
+                else if(cmd === '-') state.a -= angleRad;
+                else if(cmd === '[') stack.push({...state});
+                else if(cmd === ']') {
+                    const {x, y, a} = stack.pop();
+                    state.x = x; state.y = y; state.a = a;
+                    ctx.moveTo(state.x, state.y);
+                }
+            }
+            ctx.stroke();
+        }
+        function applyContourLines(imageData, originalData, w, h, props) {
+            const data = imageData.data;
+            const gray = new Uint8ClampedArray(w*h);
+            for(let i=0; i<originalData.length; i+=4) gray[i/4] = originalData[i]*.299+originalData[i+1]*.587+originalData[i+2]*.114;
+            
+            const step = 255 / props.levels;
+            const [cr, cg, cb] = props.color;
+
+            for(let i=0; i<gray.length; i++) {
+                if((gray[i] % step) < props.width) {
+                    const idx = i*4;
+                    data[idx] = cr; data[idx+1] = cg; data[idx+2] = cb;
+                }
+            }
+        }
+        function applyTextOverlay(ctx,w,h,props,rand){const words=['glitch','art','dream','data','noise','code','flow','warp','fractal','pixel','flux'];for(let i=0;i<props.count;i++){ctx.save();ctx.font=`${10+rand()*100}px sans-serif`;ctx.fillStyle=`rgba(${rand()*255},${rand()*255},${rand()*255},${.2+rand()*.8})`;ctx.translate(rand()*w,rand()*h);ctx.rotate((rand()-.5)*Math.PI);ctx.fillText(words[Math.floor(rand()*words.length)],0,0);ctx.restore();}}
+        function applyTruchetTiling(ctx,w,h,props,rand){ctx.strokeStyle=props.color;ctx.lineWidth=props.weight;const s=props.size;for(let y=0;y<h;y+=s)for(let x=0;x<w;x+=s){ctx.beginPath();if(rand()>.5){ctx.moveTo(x,y);ctx.lineTo(x+s,y+s);}else{ctx.moveTo(x+s,y);ctx.lineTo(x,y+s);}ctx.stroke();}}
+        function applyNormalMapLighting(imageData,o,w,h,props){const d=imageData.data,g=new Uint8ClampedArray(w*h);for(let i=0;i<o.length;i+=4)g[i/4]=o[i]*.299+o[i+1]*.587+o[i+2]*.114;const{lightX,lightY,lightZ,strength}=props,lV=[lightX,lightY,lightZ],norm=Math.sqrt(lV[0]*lV[0]+lV[1]*lV[1]+lV[2]*lV[2]);lV[0]/=norm;lV[1]/=norm;lV[2]/=norm;for(let i=0;i<d.length;i+=4){const x=(i/4)%w,y=Math.floor((i/4)/w),tl=g[(y-1)*w+(x-1)]||g[y*w+x],t=g[(y-1)*w+x]||g[y*w+x],tr=g[(y-1)*w+(x+1)]||g[y*w+x],l=g[y*w+(x-1)]||g[y*w+x],r=g[y*w+(x+1)]||g[y*w+x],bl=g[(y+1)*w+(x-1)]||g[y*w+x],b=g[(y+1)*w+x]||g[y*w+x],br=g[(y+1)*w+(x+1)]||g[y*w+x];const dx=(tr+2*r+br)-(tl+2*l+bl),dy=(bl+2*b+br)-(tl+2*t+tr),normal=[-dx*strength,-dy*strength,255],n_norm=Math.sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);normal[0]/=n_norm;normal[1]/=n_norm;normal[2]/=n_norm;const diffuse=Math.max(0,normal[0]*lV[0]+normal[1]*lV[1]+normal[2]*lV[2]);d[i]=d[i+1]=d[i+2]=diffuse*255;}}
+        function applyRecursiveTiling(ctx,w,h,props,rand){const iter=(x,y,w,h,c)=>{if(c<=0)return;const nw=w*props.scale,nh=h*props.scale,nx=x+(w-nw)*rand(),ny=y+(h-nh)*rand();ctx.drawImage(ctx.canvas,x,y,w,h,nx,ny,nw,nh);iter(nx,ny,nw,nh,c-1);};iter(0,0,w,h,props.iterations);}
+        function applyJulia(ctx,w,h,props,rand){const jc=document.createElement('canvas');jc.width=w;jc.height=h;const jx=jc.getContext('2d'),jd=jx.createImageData(w,h),d=jd.data;const{c_real,c_imag}=props,c1=rand(),c2=rand(),c3=rand();for(let y=0;y<h;y++)for(let x=0;x<w;x++){let zx=1.5*(x-w/2)/(.5*w),zy=(y-h/2)/(.5*h),i=100;while(zx*zx+zy*zy<4&&i>0){const t=zx*zx-zy*zy+c_real;zy=2*zx*zy+c_imag;zx=t;i--;}const idx=(y*w+x)*4,b=i>0?Math.floor(255*(100-i)/100):0;d[idx]=b*c1;d[idx+1]=b*c2;d[idx+2]=b*c3;d[idx+3]=b>20?255*props.alpha:0;}jx.putImageData(jd,0,0);ctx.globalCompositeOperation=props.blend;ctx.drawImage(jc,0,0);ctx.globalCompositeOperation='source-over';}
+        function applyPaletteMapping(imgData,w,h,props){const cc={},d=imgData.data;for(let i=0;i<d.length;i+=40){const r=Math.floor(d[i]/32),g=Math.floor(d[i+1]/32),b=Math.floor(d[i+2]/32),k=`${r},${g},${b}`;cc[k]=(cc[k]||0)+1;}const dom=Object.keys(cc).sort((a,b)=>cc[b]-cc[a])[0];if(!dom)return;const[dr,dg,db]=dom.split(',').map(c=>parseInt(c)*32);const R=(r,g,b)=>{r/=255;g/=255;b/=255;let M=Math.max(r,g,b),m=Math.min(r,g,b),h,s,v=M,df=M-m;s=M==0?0:df/M;if(M==m)h=0;else{switch(M){case r:h=(g-b)/df+(g<b?6:0);break;case g:h=(b-r)/df+2;break;case b:h=(r-g)/df+4}h/=6}return[h,s,v]};const H=(h,s,v)=>{let r,g,b,i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);switch(i%6){case 0:r=v,g=t,b=p;break;case 1:r=q,g=v,b=p;break;case 2:r=p,g=v,b=t;break;case 3:r=p,g=q,b=v;break;case 4:r=t,g=p,b=v;break;case 5:r=v,g=p,b=q}return[r*255,g*255,b*255]};const[hue,sat,val]=R(dr,dg,db);let p=[[dr,dg,db]];if(props.harmony==='complementary')p.push(H((hue+.5)%1,sat,val));else if(props.harmony==='triadic'){p.push(H((hue+.33)%1,sat,val));p.push(H((hue+.66)%1,sat,val));}else{p.push(H((hue+.1)%1,sat,val));p.push(H((hue-.1+1)%1,sat,val));}for(let i=0;i<d.length;i+=4){const l=d[i]*.299+d[i+1]*.587+d[i+2]*.114,m=p[Math.floor((l/255)*(p.length-1))];d[i]=m[0];d[i+1]=m[1];d[i+2]=m[2];}}
+        function createFlowField(w,h,props,rand){const p=new Uint8Array(512);for(let i=0;i<256;i++)p[i]=i;for(let i=255;i>0;i--){const j=Math.floor(rand()*(i+1)),t=p[i];p[i]=p[j];p[j]=t;}for(let i=0;i<256;i++)p[i+256]=p[i];const f=t=>t*t*t*(t*(t*6-15)+10),l=(t,a,b)=>a+t*(b-a),g=(h,x,y)=>(h&1?x:-x)+(h&2?y:-y),n=(x,y)=>{const X=Math.floor(x)&255,Y=Math.floor(y)&255,xf=x-Math.floor(x),yf=y-Math.floor(y),u=f(xf),v=f(yf),g1=p[p[X]+Y],g2=p[p[X+1]+Y],g3=p[p[X]+Y+1],g4=p[p[X+1]+Y+1];return l(v,l(u,g(g1,xf,yf),g(g2,xf-1,yf)),l(u,g(g3,xf,yf-1),g(g4,xf-1,yf-1)));};const field=new Float32Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){field[y*w+x]=n(x/props.zoom,y/props.zoom)*Math.PI*2;}return field;}
+        function applyVoronoi(ctx,w,h,props,rand){const p=Array.from({length:props.points},()=>({x:rand()*w,y:rand()*h,c:`rgba(${rand()*255},${rand()*255},${rand()*255},${props.alpha})`})); for(let y=0;y<h;y+=4)for(let x=0;x<w;x+=4){let m=Infinity,cp=null; for(const P of p){const d=Math.sqrt(Math.pow(x-P.x,2)+Math.pow(y-P.y,2));if(d<m){m=d;cp=P;}} ctx.fillStyle=cp.c; ctx.fillRect(x,y,4,4);}}
+        function applyAscii(ctx,w,h,props,rand){const d=ctx.getImageData(0,0,w,h).data; ctx.fillStyle='black'; ctx.fillRect(0,0,w,h); ctx.fillStyle=props.color; ctx.font=`${props.size}px monospace`; const c=props.chars; for(let y=0;y<h;y+=props.size)for(let x=0;x<w;x+=props.size){let b=0,ct=0; for(let sy=0;sy<props.size;sy++)for(let sx=0;sx<props.size;sx++){const px=x+sx,py=y+sy;if(px<w&&py<h){const i=(py*w+px)*4; b+=(d[i]+d[i+1]+d[i+2])/3; ct++;}} const ci=Math.floor((b/ct/255)*(c.length-1)); ctx.fillText(c[ci],x,y+props.size);}}
+        function applyDataMoshing(ctx,s,w,h,props,rand){const b=props.blockSize; for(let y=0;y<h;y+=b){if(rand()<props.strength){const sx=Math.floor(rand()*(w/b))*b,sy=Math.floor(rand()*(h/b))*b; ctx.drawImage(s,sx,sy,b,h-sy,0,y,b,h-y); return;}}}
+        function applyHalftone(ctx,w,h,props){const d=ctx.getImageData(0,0,w,h).data;ctx.fillStyle=props.bgColor;ctx.fillRect(0,0,w,h);ctx.fillStyle=props.dotColor;const s=props.size;for(let y=0;y<h;y+=s)for(let x=0;x<w;x+=s){let b=0,c=0;for(let sy=0;sy<s;sy++)for(let sx=0;sx<s;sx++){if(x+sx<w&&y+sy<h){const i=((y+sy)*w+(x+sx))*4;b+=(d[i]+d[i+1]+d[i+2])/3;c++;}} const r=(b/c/255)*(s/2);ctx.beginPath();ctx.arc(x+s/2,y+s/2,r,0,Math.PI*2);ctx.fill();}}
+        function applyPixelSort(imgData,w,h,props,rand){const d=imgData.data;const getB=(i)=>d[i]*.299+d[i+1]*.587+d[i+2]*.114;for(let y=0;y<h;y++){let rs=-1;for(let x=0;x<w;x++){const i=(y*w+x)*4,b=getB(i)/255;if(b>props.threshold&&rs===-1)rs=x;else if(b<=props.threshold&&rs!==-1){const sl=x-rs,p=[];for(let i=0;i<sl;i++){const idx=(y*w+rs+i)*4;p.push({b:getB(idx),r:d[idx],g:d[idx+1],b:d[idx+2]});} p.sort((a,b)=>a.b-b.b);for(let i=0;i<sl;i++){const idx=(y*w+rs+i)*4;d[idx]=p[i].r;d[idx+1]=p[i].g;d[idx+2]=p[i].b;} rs=-1;}}}}
+        function sobelOperator(imgData,o,w,h,props){const d=imgData.data,g=new Uint8ClampedArray(w*h);for(let i=0;i<o.length;i+=4)g[i/4]=o[i]*.299+o[i+1]*.587+o[i+2]*.114;const kx=[-1,0,1,-2,0,2,-1,0,1],ky=[-1,-2,-1,0,0,0,1,2,1];for(let i=0;i<d.length;i+=4){const x=(i/4)%w,y=Math.floor((i/4)/w);let gx=0,gy=0;for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){if(x+ox>=0&&x+ox<w&&y+oy>=0&&y+oy<h){const ki=(oy+1)*3+(ox+1),v=g[(y+oy)*w+(x+ox)];gx+=kx[ki]*v;gy+=ky[ki]*v;}}let m=Math.sqrt(gx*gx+gy*gy)>props.threshold?255:0;if(props.invert)m=255-m;d[i]=d[i+1]=d[i+2]=m;}}
+        function floydSteinbergDithering(imgData,w,h,palette,rand){const d=imgData.data;const findClosest=(r,g,b)=>{let c=palette[0],m=Infinity;for(const C of palette){const dist=Math.sqrt(Math.pow(r-C[0],2)+Math.pow(g-C[1],2)+Math.pow(b-C[2],2));if(dist<m){m=dist;c=C;}}return c;};for(let i=0;i<d.length;i+=4){const[r,g,b]=[d[i],d[i+1],d[i+2]],[nr,ng,nb]=findClosest(r,g,b);d[i]=nr;d[i+1]=ng;d[i+2]=nb;const[er,eg,eb]=[r-nr,g-ng,b-nb],x=(i/4)%w,y=Math.floor((i/4)/w);const dith=(ox,oy,f)=>{if(x+ox>=0&&x+ox<w&&y+oy>=0&&y+oy<h){const idx=((y+oy)*w+x+ox)*4;d[idx]+=er*f;d[idx+1]+=eg*f;d[idx+2]+=eb*f;}};dith(1,0,7/16);dith(-1,1,3/16);dith(0,1,5/16);dith(1,1,1/16);}}
+        function runReactionDiffusion(imgData,w,h,props,rand){const{feed,kill,iterations,c1,c2}=props,d=imgData.data;let grid=[],nextGrid=[];for(let i=0;i<w*h;i++){grid[i]={a:1,b:0};nextGrid[i]={a:1,b:0};}for(let i=0;i<100;i++){const x=Math.floor(rand()*w),y=Math.floor(rand()*h);for(let oy=-5;oy<=5;oy++)for(let ox=-5;ox<=5;ox++){if(x+ox>=0&&x+ox<w&&y+oy>=0&&y+oy<h)grid[(y+oy)*w+(x+ox)].b=1;}}const laplace=(x,y,p)=>{let s=0;s+=grid[y*w+x][p]*-1;s+=grid[y*w+(x-1)]?.[p]*.2;s+=grid[y*w+(x+1)]?.[p]*.2;s+=grid[(y-1)*w+x]?.[p]*.2;s+=grid[(y+1)*w+x]?.[p]*.2;s+=grid[(y-1)*w+(x-1)]?.[p]*.05;s+=grid[(y-1)*w+(x+1)]?.[p]*.05;s+=grid[(y+1)*w+(x-1)]?.[p]*.05;s+=grid[(y+1)*w+(x+1)]?.[p]*.05;return s;};for(let i=0;i<iterations;i++){for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const idx=y*w+x, {a,b}=grid[idx], abb=a*b*b;nextGrid[idx].a=a+(1*laplace(x,y,'a')-abb+feed*(1-a));nextGrid[idx].b=b+(.5*laplace(x,y,'b')+abb-(kill+feed)*b);}grid=nextGrid.map(c=>({...c}));}for(let i=0;i<d.length;i+=4){const v=grid[i/4].a-grid[i/4].b, r=Math.max(0,Math.min(1,v));d[i]=c1[0]*(1-r)+c2[0]*r;d[i+1]=c1[1]*(1-r)+c2[1]*r;d[i+2]=c1[2]*(1-r)+c2[2]*r;}}
+        function perlinNoise(seed) {const p=new Uint8Array(512);const rand=mulberry32(seed);for(let i=0;i<256;i++)p[i]=i;for(let i=255;i>0;i--){const j=Math.floor(rand()*(i+1)),tmp=p[i];p[i]=p[j];p[j]=tmp;}for(let i=0;i<256;i++)p[i+256]=p[i];const fade=t=>t*t*t*(t*(t*6-15)+10),lerp=(t,a,b)=>a+t*(b-a),grad3=(h,x,y,z)=>{const u=h<8?x:y,v=h<4?y:h==12||h==14?x:z;return((h&1)===0?u:-u)+((h&2)===0?v:-v);};return{noise:function(x,y,z){const X=Math.floor(x)&255,Y=Math.floor(y)&255,Z=Math.floor(z)&255;x-=Math.floor(x);y-=Math.floor(y);z-=Math.floor(z);const u=fade(x),v=fade(y),w=fade(z);const A=p[X]+Y,AA=p[A]+Z,AB=p[A+1]+Z,B=p[X+1]+Y,BA=p[B]+Z,BB=p[B+1]+Z;return lerp(w,lerp(v,lerp(u,grad3(p[AA],x,y,z),grad3(p[BA],x-1,y,z)),lerp(u,grad3(p[AB],x,y-1,z),grad3(p[BB],x-1,y-1,z))),lerp(v,lerp(u,grad3(p[AA+1],x,y,z-1),grad3(p[BA+1],x-1,y,z-1)),lerp(u,grad3(p[AB+1],x,y-1,z-1),grad3(p[BB+1],x-1,y-1,z-1))));}}}
+
+        // --- Pan and Zoom Logic ---
+        function redraw() {const dpr=window.devicePixelRatio||1,lw=canvas.width/dpr,lh=canvas.height/dpr;ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,lw,lh);ctx.translate(transform.translateX,transform.translateY);ctx.scale(transform.scale,transform.scale);if(filteredImageCanvas.width>0){ctx.imageSmoothingEnabled=transform.scale<3;ctx.drawImage(filteredImageCanvas,0,0,filteredImageCanvas.width,filteredImageCanvas.height);}ctx.restore();}
+        function resetView(){const dpr=window.devicePixelRatio||1,lw=canvas.width/dpr,lh=canvas.height/dpr;if(filteredImageCanvas.width===0||filteredImageCanvas.height===0)return;const hr=lw/filteredImageCanvas.width,vr=lh/filteredImageCanvas.height,ns=Math.min(hr,vr,1);transform={scale:ns,translateX:(lw-filteredImageCanvas.width*ns)/2,translateY:(lh-filteredImageCanvas.height*ns)/2};redraw();}
+        function getEventCoordinates(e){const r=canvas.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:cx-r.left,y:cy-r.top};}
+        function startPan(e){isPanning=true;canvas.classList.add('grabbing');lastPanPosition=getEventCoordinates(e);}
+        function pan(e){if(!isPanning)return;const p=getEventCoordinates(e);transform.translateX+=p.x-lastPanPosition.x;transform.translateY+=p.y-lastPanPosition.y;lastPanPosition=p;redraw();}
+        function endPan(){isPanning=false;canvas.classList.remove('grabbing');}
+        function handleZoom(e){e.preventDefault();const z=.1,d=e.deltaY>0?-1:1,za=d*z,mp=getEventCoordinates(e),wx=(mp.x-transform.translateX)/transform.scale,wy=(mp.y-transform.translateY)/transform.scale,ns=Math.max(.1,Math.min(10,transform.scale+za*transform.scale));transform.translateX=mp.x-wx*ns;transform.translateY=mp.y-wy*ns;transform.scale=ns;redraw();}
+        
+        // --- PRNG ---
+        function mulberry32(seed) {return function(){var t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}}
+        
+        init();
+
+    </script>
+</body>
+</html>
+
